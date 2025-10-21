@@ -26,8 +26,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    paddingVertical: 16,
-    paddingBottom: 20,
+    paddingVertical: 5,
+    paddingBottom: 5,
   },
   navItem: {
     padding: 8,

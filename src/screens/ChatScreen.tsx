@@ -1,11 +1,12 @@
 import React from 'react';
 import {
-  View,
   Text,
   StyleSheet,
   FlatList,
-  SafeAreaView,
+  StatusBar,
+  View, Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Header from '../components/Header';
 import ChatItem from '../components/ChatItem';
 import BottomNavigation from '../components/BottomNavigation';
@@ -89,7 +90,8 @@ const ChatScreen: React.FC = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
+
       <Header />
       <View style={styles.content}>
         <View style={styles.chatsHeader}>
@@ -106,7 +108,7 @@ const ChatScreen: React.FC = () => {
         <AddFriendBanner />
       </View>
       <BottomNavigation />
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -136,5 +138,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
+
 
 export default ChatScreen;
