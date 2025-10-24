@@ -6,7 +6,7 @@ import {
     TouchableOpacity,
     StyleSheet,
 } from 'react-native';
-import MobileShell from '../components/MobileShell';
+import MobileShell from '../components/mobileshell';
 
 interface Friend {
     id: number;

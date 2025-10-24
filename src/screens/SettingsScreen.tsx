@@ -5,7 +5,7 @@ import {
     TouchableOpacity,
     StyleSheet,
 } from 'react-native';
-import MobileShell from '../components/MobileShell';
+import MobileShell from '../components/mobileshell';
 
 export default function SettingsScreen() {
     return (
