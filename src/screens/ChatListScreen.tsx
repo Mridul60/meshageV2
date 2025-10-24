@@ -5,9 +5,7 @@ import {
   FlatList,
   View,
 } from 'react-native';
-import Header from '../components/Header';
 import ChatItem from '../components/ChatItem';
-import BottomNavigation from '../components/BottomNavigation';
 import AddFriendBanner from '../components/AddFriendBanner';
 
 interface Chat {
@@ -90,7 +88,6 @@ const ChatScreen: React.FC = () => {
   return (
     <View style={styles.container}>
 
-      <Header />
       <View style={styles.content}>
         <View style={styles.chatsHeader}>
           <Text style={styles.chatsTitle}>Chats</Text>
@@ -105,7 +102,6 @@ const ChatScreen: React.FC = () => {
         />
         <AddFriendBanner />
       </View>
-      <BottomNavigation />
     </View>
   );
 };

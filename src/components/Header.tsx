@@ -1,14 +1,13 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import { View, Text, StyleSheet } from 'react-native';
 
 const Header: React.FC = () => {
   return (
     <View style={styles.header}>
       <Text style={styles.title}>MESHAGE</Text>
-      <TouchableOpacity style={styles.expandButton}>
+      {/* <TouchableOpacity style={styles.expandButton}>
         <Ionicons name="expand" size={24} color="#fff" />
-      </TouchableOpacity>
+      </TouchableOpacity> */}
     </View>
   );
 };
@@ -17,14 +16,14 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: '#1a1a1a',
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   title: {
     color: '#d4af37',
-    fontSize: 18,
+    fontSize: 24,
     fontWeight: 'bold',
     letterSpacing: 2,
   },

@@ -1,89 +1,100 @@
 import React from 'react';
-import { StatusBar } from 'react-native';
+import { StatusBar, View, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MessageSquare, Radio, Users, Settings } from 'lucide-react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+
 import OnboardingScreen from './src/screens/OnboardingScreen';
 import ChatListScreen from './src/screens/ChatListScreen';
 import BroadcastScreen from './src/screens/BroadcastScreen';
 import FriendsScreen from './src/screens/FriendsScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
+import Header from './src/components/Header'; // ✅ Import your custom header
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 const queryClient = new QueryClient();
 
-function MainTabs() {
+/* ---------------------- CUSTOM BOTTOM NAV ---------------------- */
+function CustomBottomNavigation({ state, navigation }: any) {
   return (
-    <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: '#f59e0b',
-        tabBarInactiveTintColor: '#737373',
-        tabBarStyle: {
-          backgroundColor: '#ffffff',
-          borderTopWidth: 1,
-          borderTopColor: '#e5e5e5',
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 8,
-        },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '600',
-        },
-      }}
-    >
-      <Tab.Screen
-        name="Broadcast"
-        component={BroadcastScreen}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <Radio color={color} size={size} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Chat"
-        component={ChatListScreen}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <MessageSquare color={color} size={size} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Friends"
-        component={FriendsScreen}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <Users color={color} size={size} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Settings"
-        component={SettingsScreen}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <Settings color={color} size={size} />
-          ),
-        }}
-      />
-    </Tab.Navigator>
+    <View style={styles.bottomContainer}>
+      {state.routes.map((route: any, index: number) => {
+        const isFocused = state.index === index;
+
+        let iconName = 'home';
+        if (route.name === 'Broadcast') iconName = 'radio';
+        else if (route.name === 'Chat') iconName = 'chatbubble';
+        else if (route.name === 'Friends') iconName = 'people';
+        else if (route.name === 'Settings') iconName = 'settings';
+
+        const onPress = () => {
+          const event = navigation.emit({
+            type: 'tabPress',
+            target: route.key,
+            canPreventDefault: true,
+          });
+          if (!isFocused && !event.defaultPrevented) {
+            navigation.navigate(route.name);
+          }
+        };
+
+        return (
+          <TouchableOpacity
+            key={route.key}
+            accessibilityRole="button"
+            onPress={onPress}
+            style={styles.navItem}
+          >
+            <View style={isFocused ? styles.activeIndicator : undefined}>
+              <Ionicons
+                name={iconName}
+                size={24}
+                color={isFocused ? '#ffa500' : '#666'}
+              />
+            </View>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
   );
 }
 
+/* ---------------------- MAIN TABS WITH HEADER ---------------------- */
+function MainTabs() {
+  return (
+    <SafeAreaProvider style={styles.mainContainer}>
+      {/* ✅ Custom Header shown above all tab screens */}
+      <Header />
+
+      {/* ✅ Tabs below the header */}
+      <Tab.Navigator
+        screenOptions={{ headerShown: false }}
+        tabBar={CustomBottomNavigation}
+      >
+        <Tab.Screen name="Broadcast" component={BroadcastScreen} />
+        <Tab.Screen name="Chat" component={ChatListScreen} />
+        <Tab.Screen name="Friends" component={FriendsScreen} />
+        <Tab.Screen name="Settings" component={SettingsScreen} />
+      </Tab.Navigator>
+    </SafeAreaProvider>
+  );
+}
+
+/* ---------------------- ROOT APP ---------------------- */
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <SafeAreaProvider>
-        <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+        <StatusBar barStyle="light-content" backgroundColor="#1a1a1a" />
         <NavigationContainer>
-          <Stack.Navigator initialRouteName="Onboarding" screenOptions={{ headerShown: false }}>
+          <Stack.Navigator
+            initialRouteName="Onboarding"
+            screenOptions={{ headerShown: false }}
+          >
             <Stack.Screen name="Onboarding" component={OnboardingScreen} />
             <Stack.Screen name="Main" component={MainTabs} />
           </Stack.Navigator>
@@ -92,3 +103,27 @@ export default function App() {
     </QueryClientProvider>
   );
 }
+
+/* ---------------------- STYLES ---------------------- */
+const styles = StyleSheet.create({
+  mainContainer: {
+    flex: 1,
+    backgroundColor: '#000', // keeps consistent with dark theme
+  },
+  bottomContainer: {
+    backgroundColor: '#1a1a1a',
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingVertical: 5,
+    paddingBottom: 5,
+  },
+  navItem: {
+    padding: 8,
+  },
+  activeIndicator: {
+    backgroundColor: '#333',
+    borderRadius: 20,
+    padding: 8,
+  },
+});
