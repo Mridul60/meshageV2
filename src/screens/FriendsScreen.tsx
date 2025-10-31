@@ -6,7 +6,6 @@ import {
     TouchableOpacity,
     StyleSheet,
 } from 'react-native';
-import MobileShell from '../components/mobileshell';
 
 interface Friend {
     id: number;
@@ -37,7 +36,6 @@ export default function FriendsScreen() {
     );
 
     return (
-        <MobileShell>
             <View style={styles.container}>
                 <Text style={styles.header}>Your Friends</Text>
                 <View style={styles.friendsList}>
@@ -49,7 +47,6 @@ export default function FriendsScreen() {
                     />
                 </View>
             </View>
-        </MobileShell>
     );
 }
 

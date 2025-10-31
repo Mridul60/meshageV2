@@ -5,11 +5,9 @@ import {
     TouchableOpacity,
     StyleSheet,
 } from 'react-native';
-import MobileShell from '../components/mobileshell';
 
 export default function SettingsScreen() {
     return (
-        <MobileShell>
             <View style={styles.container}>
                 <View style={styles.card}>
                     <View style={styles.cardContent}>
@@ -30,7 +28,6 @@ export default function SettingsScreen() {
                     friends nearby.
                 </Text>
             </View>
-        </MobileShell>
     );
 }
 
