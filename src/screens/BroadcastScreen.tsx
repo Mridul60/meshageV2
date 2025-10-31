@@ -9,7 +9,6 @@ import {
     KeyboardAvoidingView,
     Platform,
 } from 'react-native';
-import MobileShell from '../components/mobileshell';
 import { Send } from 'lucide-react-native';
 
 interface Message {
@@ -21,7 +20,7 @@ interface Message {
 export default function BroadcastScreen() {
     const [message, setMessage] = useState('');
     const [messages, setMessages] = useState<Message[]>([
-         { id: '1', text: 'Welcome to the mesh.', isSent: false },
+        { id: '1', text: 'Welcome to the mesh.', isSent: false },
         { id: '2', text: 'Hello everyone!', isSent: true },
         { id: '3', text: 'This is a sample message.', isSent: false },
         { id: '4', text: 'Looks good!', isSent: true },
@@ -42,70 +41,67 @@ export default function BroadcastScreen() {
     };
 
     return (
-        <MobileShell>
-            <KeyboardAvoidingView
-                style={styles.container}
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
-            >
-                <View style={styles.statusBar}>
-                    <Text style={styles.statusText}>Broadcast Status:</Text>
-                    <Text style={styles.statusValue}>DISCONNECTED</Text>
-                    <View style={styles.statusIndicator}>
-                        <View style={styles.greenDot} />
-                        <Text style={styles.nodeCount}>4</Text>
-                    </View>
+        <View style={styles.container}>
+            {/* STATUS BAR - Directly below the Header from App.tsx */}
+            <View style={styles.statusBar}>
+                <Text style={styles.statusLabel}>Broadcast Status:</Text>
+                <Text style={styles.statusValue}>DISCONNECTED</Text>
+                <View style={styles.statusRight}>
+                    <View style={styles.statusDot} />
+                    <Text style={styles.statusCount}>4</Text>
                 </View>
-                <View style={styles.messagesContainer}>
-                    <ScrollView
-                        style={styles.scrollView}
-                        contentContainerStyle={styles.scrollContent}
-                        showsVerticalScrollIndicator={false}
-                    >
-                        {messages.map((msg) => (
+            </View>
+
+            {/* CHAT MESSAGES - Full screen */}
+            <KeyboardAvoidingView
+                style={styles.flexContainer}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+            >
+                <ScrollView
+                    style={styles.scrollView}
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                >
+                    {messages.map((msg) => (
+                        <View
+                            key={msg.id}
+                            style={[
+                                styles.messageRow,
+                                msg.isSent ? styles.sentRow : styles.receivedRow,
+                            ]}
+                        >
+                            {!msg.isSent && <View style={styles.avatar} />}
                             <View
-                                key={msg.id}
                                 style={[
-                                    styles.messageRow,
-                                    msg.isSent ? styles.sentRow : styles.receivedRow,
+                                    styles.messageBubble,
+                                    msg.isSent
+                                        ? styles.sentBubble
+                                        : styles.receivedBubble,
                                 ]}
                             >
-                                {!msg.isSent && <View style={styles.avatar} />}
-                                <View
-                                    style={[
-                                        styles.messageBubble,
-                                        msg.isSent ? styles.sentMessage : styles.receivedMessage,
-                                    ]}
-                                >
-                                    <Text
-                                        style={[
-                                            styles.messageText,
-                                            msg.isSent ? styles.sentText : styles.receivedText,
-                                        ]}
-                                    >
-                                        {msg.text}
-                                    </Text>
-                                </View>
-                                {msg.isSent && <View style={styles.avatar} />}
+                                <Text style={styles.messageText}>{msg.text}</Text>
                             </View>
-                        ))}
-                    </ScrollView>
-                </View>
+                            {msg.isSent && <View style={styles.avatar} />}
+                        </View>
+                    ))}
+                </ScrollView>
+
+                {/* INPUT BAR */}
                 <View style={styles.inputContainer}>
                     <TextInput
+                        style={styles.input}
+                        placeholder="Enter your message"
+                        placeholderTextColor="#888"
                         value={message}
                         onChangeText={setMessage}
-                        placeholder="Enter your message"
-                        placeholderTextColor="#9ca3af"
-                        style={styles.input}
-                        multiline={false}
                     />
                     <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
-                        <Send color="#000000" size={20} />
+                        <Send size={20} color="#000" />
                     </TouchableOpacity>
                 </View>
             </KeyboardAvoidingView>
-        </MobileShell>
+        </View>
     );
 }
 
@@ -114,123 +110,125 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#E5E1DE',
     },
+    flexContainer: {
+        flex: 1,
+    },
     statusBar: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 12,
-        gap: 8,
+        backgroundColor: '#F5F5F5',
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#000',
     },
-    statusText: {
-        fontSize: 14,
+    statusLabel: {
+        fontSize: 12,
+        color: '#000',
         fontWeight: '600',
-        color: '#000000',
     },
     statusValue: {
-        fontSize: 14,
+        fontSize: 12,
+        color: '#000',
         fontWeight: '700',
-        color: '#000000',
+        marginLeft: 4,
     },
-    statusIndicator: {
+    statusRight: {
         marginLeft: 'auto',
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
     },
-    greenDot: {
+    statusDot: {
         width: 12,
         height: 12,
         borderRadius: 6,
-        backgroundColor: '#22c55e',
+        backgroundColor: '#22C55E',
+        borderWidth: 1,
+        borderColor: '#000',
     },
-    nodeCount: {
+    statusCount: {
         fontSize: 12,
-        fontWeight: '600',
-        color: '#22c55e',
-    },
-    messagesContainer: {
-        flex: 1,
-        borderRadius: 0,
-        backgroundColor: '#d4d4d8',
-        overflow: 'hidden',
+        color: '#22C55E',
+        fontWeight: '700',
     },
     scrollView: {
         flex: 1,
+        backgroundColor: '#E5E1DE',
     },
     scrollContent: {
-        padding: 16,
+        paddingVertical: 16,
+        paddingHorizontal: 16,
+        flexGrow: 1,
     },
     messageRow: {
         flexDirection: 'row',
-        alignItems: 'flex-end',
-        marginBottom: 16,
-        gap: 8,
-    },
-    receivedRow: {
-        justifyContent: 'flex-start',
+        alignItems: 'center',
+        marginBottom: 24,
     },
     sentRow: {
         justifyContent: 'flex-end',
     },
+    receivedRow: {
+        justifyContent: 'flex-start',
+    },
     avatar: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        backgroundColor: '#ffffff',
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        backgroundColor: '#FFF',
+        borderWidth: 1,
+        borderColor: '#000',
     },
     messageBubble: {
-        maxWidth: '70%',
-        paddingHorizontal: 16,
         paddingVertical: 12,
-        borderRadius: 4,
-    },
-    receivedMessage: {
-        alignSelf: 'flex-start',
-        backgroundColor: '#ffffff',
+        paddingHorizontal: 20,
+        maxWidth: '70%',
         borderWidth: 1,
-        borderColor: '#000000',
+        borderColor: '#000',
+        backgroundColor: '#FFF',
+        marginHorizontal: 10,
     },
-    sentMessage: {
-        alignSelf: 'flex-end',
-        backgroundColor: '#ffffff',
-        borderWidth: 1,
-        borderColor: '#000000',
+    receivedBubble: {
+        transform: [{ skewX: '-10deg' }],
+    },
+    sentBubble: {
+        transform: [{ skewX: '10deg' }],
     },
     messageText: {
+        color: '#000',
         fontSize: 14,
-    },
-    receivedText: {
-        color: '#000000',
-    },
-    sentText: {
-        color: '#000000',
+        transform: [{ skewX: '0deg' }],
     },
     inputContainer: {
         flexDirection: 'row',
-        marginTop: 12,
-        gap: 8,
+        alignItems: 'center',
+        backgroundColor: '#E5E1DE',
+        padding: 12,
+        paddingBottom: Platform.OS === 'ios' ? 24 : 12,
+        borderTopWidth: 1,
+        borderTopColor: '#00000020',
     },
     input: {
         flex: 1,
-        height: 44,
-        borderRadius: 8,
-        backgroundColor: '#ffffff',
+        backgroundColor: '#FFF',
         borderWidth: 1,
-        borderColor: '#d4d4d8',
-        paddingHorizontal: 12,
+        borderColor: '#000',
+        borderRadius: 20,
+        paddingHorizontal: 16,
+        height: 44,
         fontSize: 14,
-        color: '#000000',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-        elevation: 1,
+        color: '#000',
     },
     sendButton: {
         width: 44,
         height: 44,
-        borderRadius: 8,
-        backgroundColor: '#f59e0b',
+        marginLeft: 8,
+        borderRadius: 22,
+        backgroundColor: '#F59E0B',
         alignItems: 'center',
         justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: '#000',
     },
 });
