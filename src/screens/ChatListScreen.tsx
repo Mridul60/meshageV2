@@ -6,7 +6,7 @@ import {
   View,
 } from 'react-native';
 import ChatItem from '../components/ChatItem';
-import AddFriendBanner from '../components/AddFriendBanner';
+// import AddFriendBanner from '../components/AddFriendBanner';
 
 interface Chat {
   id: string;
@@ -100,7 +100,7 @@ const ChatScreen: React.FC = () => {
           style={styles.chatList}
           showsVerticalScrollIndicator={false}
         />
-        <AddFriendBanner />
+        {/* <AddFriendBanner /> */}
       </View>
     </View>
   );
