@@ -32,95 +32,93 @@ export default function MoreInfoPage() {
     );
   };
 
-  return (
-    <ScrollView style={styles.container} >
+    return (
+    <View style={styles.container}>
         <Header />
-      {/* <View style={styles.header}>
-        <Text style={styles.headerText}>Settings</Text>
-      </View> */}
+        <ScrollView contentContainerStyle={styles.contentContainer}>
+        <View style={styles.card}>
+            <Text style={styles.cardTitle}>Device Information - for testing</Text>
+            
+            <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Username:</Text>
+            <Text style={styles.infoValue}>{deviceInfo.username}</Text>
+            </View>
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Device Information - for testing</Text>
-        
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Username:</Text>
-          <Text style={styles.infoValue}>{deviceInfo.username}</Text>
+            <View style={styles.divider} />
+
+            <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Full UUID:</Text>
+            <Text style={styles.infoValueSmall}>{deviceInfo.fullUUID}</Text>
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Session Local ID:</Text>
+            <Text style={styles.infoValue}>{deviceInfo.sessionLocalID}</Text>
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Device Identifier:</Text>
+            <View style={styles.identifierContainer}>
+                <Text style={styles.identifierLabel}>Roy|</Text>
+                <Text style={styles.infoValueSmall}>{deviceInfo.deviceIdentifier}</Text>
+            </View>
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Friends:</Text>
+            <Text style={styles.infoValue}>{deviceInfo.friends}</Text>
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Friend Requests:</Text>
+            <Text style={styles.infoValue}>{deviceInfo.friendRequests}</Text>
+            </View>
+
+            <View style={styles.noteContainer}>
+            <Text style={styles.noteIcon}>💡</Text>
+            <Text style={styles.noteText}>
+                Real endpoint IDs (like "2mxk") are shown in the peer list
+            </Text>
+            </View>
         </View>
 
-        <View style={styles.divider} />
+        <View style={styles.statusCard}>
+            <View style={styles.statusHeader}>
+            <Text style={styles.statusIcon}>📡</Text>
+            <Text style={styles.statusTitle}>Mesh Network Status</Text>
+            </View>
+            
+            <Text style={styles.statusDescription}>
+            Stay connected to discover nearby devices and chat with friends.
+            </Text>
 
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Full UUID:</Text>
-          <Text style={styles.infoValueSmall}>{deviceInfo.fullUUID}</Text>
+            <View style={styles.warningContainer}>
+            <Text style={styles.warningIcon}>⚠️</Text>
+            <Text style={styles.warningText}>
+                Disconnecting will stop message delivery
+            </Text>
+            </View>
         </View>
 
-        <View style={styles.divider} />
-
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Session Local ID:</Text>
-          <Text style={styles.infoValue}>{deviceInfo.sessionLocalID}</Text>
-        </View>
-
-        <View style={styles.divider} />
-
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Device Identifier:</Text>
-          <View style={styles.identifierContainer}>
-            <Text style={styles.identifierLabel}>Roy|</Text>
-            <Text style={styles.infoValueSmall}>{deviceInfo.deviceIdentifier}</Text>
-          </View>
-        </View>
-
-        <View style={styles.divider} />
-
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Friends:</Text>
-          <Text style={styles.infoValue}>{deviceInfo.friends}</Text>
-        </View>
-
-        <View style={styles.divider} />
-
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Friend Requests:</Text>
-          <Text style={styles.infoValue}>{deviceInfo.friendRequests}</Text>
-        </View>
-
-        <View style={styles.noteContainer}>
-          <Text style={styles.noteIcon}>💡</Text>
-          <Text style={styles.noteText}>
-            Real endpoint IDs (like "2mxk") are shown in the peer list
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.statusCard}>
-        <View style={styles.statusHeader}>
-          <Text style={styles.statusIcon}>📡</Text>
-          <Text style={styles.statusTitle}>Mesh Network Status</Text>
-        </View>
-        
-        <Text style={styles.statusDescription}>
-          Stay connected to discover nearby devices and chat with friends.
-        </Text>
-
-        <View style={styles.warningContainer}>
-          <Text style={styles.warningIcon}>⚠️</Text>
-          <Text style={styles.warningText}>
-            Disconnecting will stop message delivery
-          </Text>
-        </View>
-      </View>
-
-      <TouchableOpacity 
-        style={styles.clearButton}
-        onPress={handleClearData}
-        activeOpacity={0.8}
-      >
-        <Text style={styles.clearButtonText}>Clear All Data</Text>
-      </TouchableOpacity>
-    </ScrollView>
-  );
-}
+        <TouchableOpacity 
+            style={styles.clearButton}
+            onPress={handleClearData}
+            activeOpacity={0.8}
+        >
+            <Text style={styles.clearButtonText}>Clear All Data</Text>
+        </TouchableOpacity>
+        </ScrollView>
+    </View>
+    );
+    }
 
 const styles = StyleSheet.create({
   container: {
