@@ -143,7 +143,14 @@ export default function App() {
           >
             <Stack.Screen name="Onboarding" component={OnboardingScreen} />
             <Stack.Screen name="Main" component={MainTabs} />
-            <Stack.Screen name="Friends" component={FriendsScreen} /> 
+            <Stack.Screen
+              name="Friends"
+              component={FriendsScreen}
+              options={{
+                presentation: 'modal', // 🪄 makes it slide up like WhatsApp
+                animation: 'slide_from_bottom',
+              }}
+            />
             <Stack.Screen 
             name="MoreInfoPage" 
             component={MoreInfoPage}

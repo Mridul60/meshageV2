@@ -7,6 +7,7 @@ export type RootStackParamList = {
     Onboarding: undefined;
     Main: undefined;
     Friends: undefined;
+    MoreInfoPage: undefined;
 };
 
 // Bottom tab navigation
