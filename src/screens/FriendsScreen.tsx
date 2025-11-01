@@ -50,7 +50,7 @@ export default function FriendsScreen({ navigation }: any) {
                 style={styles.messageIcon}
                 onPress={() => handleMessage(item.id)}
             >
-                <Ionicons name="chatbubble" size={20} color="#767676ff" />
+                <Ionicons name="chatbubble" size={20} color="#666" />
             </TouchableOpacity>
         </View>
     );
@@ -58,12 +58,9 @@ export default function FriendsScreen({ navigation }: any) {
     return (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
             <View style={styles.root}>
-                {/* Header should not be affected by padding */}
                 <Header />
 
-                {/* Inner content */}
                 <View style={styles.container}>
-                    {/* Header section with close button */}
                     <View style={styles.headerSection}>
                         <View style={styles.headerTop}>
                             <View style={styles.headerTextContainer}>
@@ -82,7 +79,6 @@ export default function FriendsScreen({ navigation }: any) {
                         </View>
                     </View>
 
-                    {/* Search Bar */}
                     <View
                         style={[
                             styles.searchContainer,
@@ -104,14 +100,8 @@ export default function FriendsScreen({ navigation }: any) {
                             onFocus={() => setIsSearchFocused(true)}
                             onBlur={() => setIsSearchFocused(false)}
                         />
-                        {/* {!isSearchFocused && (
-                            <TouchableOpacity style={styles.sortButton}>
-                                <Ionicons name="refresh" size={20} color="#000" />
-                            </TouchableOpacity>
-                        )} */}
                     </View>
 
-                    {/* Friends List */}
                     <FlatList
                         data={friends}
                         renderItem={renderFriendItem}
@@ -121,7 +111,6 @@ export default function FriendsScreen({ navigation }: any) {
                     />
                 </View>
 
-                {/* Floating Action Button */}
                 <TouchableOpacity
                     style={styles.fab}
                     onPress={handleAddFriend}
@@ -176,15 +165,16 @@ const styles = StyleSheet.create({
     searchContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#f5f5f5',
-        borderRadius: 10,
+        backgroundColor: '#F5F5F5',
+        borderRadius: 12,
         paddingHorizontal: 12,
-        marginBottom: 40,
+        paddingVertical: 2,
+        marginBottom: 16,
         borderWidth: 1,
         borderColor: 'transparent',
     },
     searchContainerFocused: {
-        backgroundColor: '#fff',
+        backgroundColor: '#FFF',
         borderColor: '#F59E0B',
     },
     searchIcon: {
@@ -195,9 +185,6 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
         fontSize: 16,
         color: '#000',
-    },
-    sortButton: {
-        padding: 4,
     },
     listContent: {
         paddingBottom: 100,
@@ -218,8 +205,8 @@ const styles = StyleSheet.create({
         gap: 12,
     },
     avatar: {
-        width: 37,
-        height: 37,
+        width: 40,
+        height: 40,
         borderRadius: 20,
         backgroundColor: '#E5E5E5',
         borderWidth: 0.3,
@@ -240,13 +227,13 @@ const styles = StyleSheet.create({
         bottom: 20,
         right: 14,
         width: 58,
-        height: 55,
-        borderRadius: 21,
+        height: 58,
+        borderRadius: 29,
         backgroundColor: '#F59E0B',
         alignItems: 'center',
         justifyContent: 'center',
         elevation: 8,
-        shadowColor: '#595555ff',
+        shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 4.65,
