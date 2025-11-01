@@ -17,6 +17,7 @@ import Header from './src/components/Header'; // ✅ Import your custom header
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 const queryClient = new QueryClient();
+const devMode = true;
 
 /* ---------------------- CUSTOM BOTTOM NAV ---------------------- */
 function CustomBottomNavigation({ state, navigation }: any) {
@@ -88,6 +89,24 @@ function MainTabs() {
 
 /* ---------------------- ROOT APP ---------------------- */
 export default function App() {
+  if (devMode) {
+    // ✅ Shortcut — directly load your Demo Mode UI
+    return (
+      <QueryClientProvider client={queryClient}>
+        <SafeAreaProvider>
+          <StatusBar barStyle="light-content" backgroundColor="#1a1a1a" />
+          <NavigationContainer>
+            <Stack.Navigator
+              initialRouteName="Main" // change to your "working" screen 
+              screenOptions={{ headerShown: false }}
+            >
+              <Stack.Screen name="Main" component={MainTabs} />
+            </Stack.Navigator>
+          </NavigationContainer>
+        </SafeAreaProvider>
+      </QueryClientProvider>
+    );
+  }
   return (
     <QueryClientProvider client={queryClient}>
       <SafeAreaProvider>
