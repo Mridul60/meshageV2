@@ -17,7 +17,11 @@ interface Message {
     isSent: boolean;
 }
 
-export default function BroadcastScreen() {
+interface BroadcastScreenProps {
+    navigation: any; // Use proper navigation type from @react-navigation/native
+}
+
+export default function BroadcastScreen({ navigation }: BroadcastScreenProps) {
     const [message, setMessage] = useState('');
     const [messages, setMessages] = useState<Message[]>([
         { id: '1', text: 'Welcome to the mesh.', isSent: false },
@@ -40,16 +44,24 @@ export default function BroadcastScreen() {
         }
     };
 
+    const handleDevicesPress = () => {
+        navigation.navigate('NearbyDevicesScreen');
+    };
+
     return (
         <View style={styles.container}>
             {/* STATUS BAR - Directly below the Header from App.tsx */}
             <View style={styles.statusBar}>
                 <Text style={styles.statusLabel}>Broadcast Status:</Text>
                 <Text style={styles.statusValue}>DISCONNECTED</Text>
-                <View style={styles.statusRight}>
+                <TouchableOpacity 
+                    style={styles.statusRight}
+                    onPress={handleDevicesPress}
+                    activeOpacity={0.7}
+                >
                     <View style={styles.statusDot} />
                     <Text style={styles.statusCount}>4</Text>
-                </View>
+                </TouchableOpacity>
             </View>
 
             {/* CHAT MESSAGES - Full screen */}
@@ -138,6 +150,9 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
+        paddingVertical: 4,
+        paddingHorizontal: 8,
+        borderRadius: 12,
     },
     statusDot: {
         width: 12,
