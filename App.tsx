@@ -18,14 +18,21 @@ import Header from './src/components/Header';
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 const queryClient = new QueryClient();
+const devMode = true;
 
 /* ---------------------- CUSTOM BOTTOM NAV ---------------------- */
 function CustomBottomNavigation({ state, navigation }: any) {
+  const currentRouteName = state.routes[state.index].name;
+
   return (
     <SafeAreaView edges={['bottom']} style={styles.bottomSafeArea}>
       <View style={styles.bottomContainer}>
-        {state.routes.map((route: any, index: number) => {
-          const isFocused = state.index === index;
+        {
+        state.routes
+          .filter((route: any) => route.name !== 'Friends') // ✅ hide Friends
+          .map((route: any) => {
+            const isFocused = route.name === currentRouteName;
+
 
           let iconName = 'home';
           if (route.name === 'Broadcast') iconName = 'radio';
@@ -80,7 +87,12 @@ function MainTabs() {
       >
         <Tab.Screen name="Broadcast" component={BroadcastScreen} />
         <Tab.Screen name="Chat" component={ChatListScreen} />
-        <Tab.Screen name="Friends" component={FriendsScreen} />
+        {/* <Tab.Screen name="Friends" component={FriendsScreen} /> */}
+        {/* <Tab.Screen
+          name="Friends"
+          component={FriendsScreen}
+          options={{ tabBarButton: () => null }} // hides from nav bar
+        /> */}
         <Tab.Screen name="Settings" component={SettingsScreen} />
       </Tab.Navigator>
     </SafeAreaProvider>
@@ -89,6 +101,32 @@ function MainTabs() {
 
 /* ---------------------- ROOT APP ---------------------- */
 export default function App() {
+  if (devMode) {
+    // ✅ Shortcut — directly load your Demo Mode UI
+    return (
+      <QueryClientProvider client={queryClient}>
+        <SafeAreaProvider>
+          <StatusBar barStyle="light-content" backgroundColor="#1a1a1a" />
+          <NavigationContainer>
+            <Stack.Navigator
+              initialRouteName="Main" // change to your "working" screen 
+              screenOptions={{ headerShown: false }}
+            >
+              <Stack.Screen name="Main" component={MainTabs} />
+              <Stack.Screen
+                name="Friends"
+                component={FriendsScreen}
+                options={{
+                  presentation: 'modal', // 🪄 makes it slide up like WhatsApp
+                  animation: 'slide_from_bottom',
+                }}
+              />
+              </Stack.Navigator>
+          </NavigationContainer>
+        </SafeAreaProvider>
+      </QueryClientProvider>
+    );
+  }
   return (
     <QueryClientProvider client={queryClient}>
       <SafeAreaProvider>
@@ -100,6 +138,7 @@ export default function App() {
           >
             <Stack.Screen name="Onboarding" component={OnboardingScreen} />
             <Stack.Screen name="Main" component={MainTabs} />
+            <Stack.Screen name="Friends" component={FriendsScreen} /> 
             <Stack.Screen 
             name="MoreInfoPage" 
             component={MoreInfoPage}
