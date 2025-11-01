@@ -12,7 +12,8 @@ import ChatListScreen from './src/screens/ChatListScreen';
 import BroadcastScreen from './src/screens/BroadcastScreen';
 import FriendsScreen from './src/screens/FriendsScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
-import Header from './src/components/Header'; // ✅ Import your custom header
+import MoreInfoPage from './src/screens/moreInfoScreen';
+import Header from './src/components/Header'; 
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -53,7 +54,7 @@ function CustomBottomNavigation({ state, navigation }: any) {
               <View style={isFocused ? styles.activeIndicator : undefined}>
                 <Ionicons
                   name={iconName}
-                  size={24}
+                  size={22}
                   color={isFocused ? '#ffa500' : '#666'}
                 />
               </View>
@@ -99,6 +100,11 @@ export default function App() {
           >
             <Stack.Screen name="Onboarding" component={OnboardingScreen} />
             <Stack.Screen name="Main" component={MainTabs} />
+            <Stack.Screen 
+            name="MoreInfoPage" 
+            component={MoreInfoPage}
+            // options={{ headerShown: true, title: 'More Information' }} 
+          />
           </Stack.Navigator>
         </NavigationContainer>
       </SafeAreaProvider>
@@ -117,8 +123,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    paddingVertical: 5,
-    paddingBottom: 5,
+    paddingVertical: 2,
+   
   },
     bottomSafeArea: {
   backgroundColor: '#1a1a1a',
