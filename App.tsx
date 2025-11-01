@@ -121,6 +121,11 @@ export default function App() {
                   animation: 'slide_from_bottom',
                 }}
               />
+              <Stack.Screen 
+              name="MoreInfoPage" 
+              component={MoreInfoPage}
+              // options={{ headerShown: true, title: 'More Information' }} 
+            />
               </Stack.Navigator>
           </NavigationContainer>
         </SafeAreaProvider>
