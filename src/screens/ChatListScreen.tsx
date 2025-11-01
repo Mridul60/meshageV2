@@ -67,7 +67,7 @@ const ChatScreen: React.FC = () => {
   );
 
   const handleFriendsPageButton = () => {
-    navigation.navigate('Friends'); // Navigate to the Main screen which should contain your Friends page
+    navigation.navigate('Friends');
   };
 
   return (
@@ -103,12 +103,34 @@ const ChatScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  content: { flex: 1, paddingHorizontal: 16 },
-  chatsHeader: { paddingVertical: 16 },
-  chatsTitle: { fontSize: 24, fontWeight: 'bold', color: '#000', marginBottom: 4 },
-  unreadContainer: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  unreadText: { fontWeight: 'bold', fontSize: 14, color: '#000' },
+  container: {
+    flex: 1,
+    backgroundColor: '#E5E5E5',
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  chatsHeader: {
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  chatsTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#000',
+    marginBottom: 4,
+  },
+  unreadContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  unreadText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#666',
+  },
   unreadCount: {
     fontSize: 10,
     fontWeight: '800',
@@ -116,23 +138,27 @@ const styles = StyleSheet.create({
     color: '#000',
     paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 20,
+    borderRadius: 12,
     overflow: 'hidden',
   },
-  chatList: { flex: 1 },
-  chatListContent: { paddingBottom: 80 },
+  chatList: {
+    flex: 1,
+  },
+  chatListContent: {
+    paddingBottom: 100,
+  },
   fab: {
     position: 'absolute',
     bottom: 20,
     right: 14,
     width: 58,
-    height: 55,
-    borderRadius: 21,
+    height: 58,
+    borderRadius: 29,
     backgroundColor: '#F59E0B',
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 8,
-    shadowColor: '#595555ff',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 4.65,
