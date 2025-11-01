@@ -6,8 +6,11 @@ import {
     TouchableOpacity,
     StyleSheet,
     TextInput,
+    Keyboard,
+    TouchableWithoutFeedback,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import Header from '../components/Header';
 
 interface Friend {
     id: number;
@@ -19,23 +22,20 @@ const friends: Friend[] = Array.from({ length: 6 }, (_, i) => ({
     name: 'Friend',
 }));
 
-export default function FriendsScreen() {
+export default function FriendsScreen({ navigation }: any) {
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearchFocused, setIsSearchFocused] = useState(false);
 
+    const handleClose = () => {
+        navigation.goBack();
+    };
 
-/**
- * Handle the "Add friend" button press
- * - Add your navigation or modal logic here
- */
     const handleAddFriend = () => {
         console.log('Add friend pressed');
-        // Add your navigation or modal logic here
     };
 
     const handleMessage = (friendId: number) => {
         console.log(`Message friend ${friendId}`);
-        // Add your navigation to chat logic here
     };
 
     const renderFriendItem = ({ item }: { item: Friend }) => (
@@ -56,72 +56,104 @@ export default function FriendsScreen() {
     );
 
     return (
-        <View style={styles.container}>
-            {/* Header */}
-            <View style={styles.headerSection}>
-                <Text style={styles.title}>Your Friends</Text>
-                <Text style={styles.availableText}>
-                    Available : <Text style={styles.availableCount}>23</Text>
-                </Text>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+            <View style={styles.root}>
+                {/* Header should not be affected by padding */}
+                <Header />
+
+                {/* Inner content */}
+                <View style={styles.container}>
+                    {/* Header section with close button */}
+                    <View style={styles.headerSection}>
+                        <View style={styles.headerTop}>
+                            <View style={styles.headerTextContainer}>
+                                <Text style={styles.title}>Your Friends</Text>
+                                <Text style={styles.availableText}>
+                                    Available : <Text style={styles.availableCount}>23</Text>
+                                </Text>
+                            </View>
+                            <TouchableOpacity
+                                style={styles.closeButton}
+                                onPress={handleClose}
+                                activeOpacity={0.7}
+                            >
+                                <Ionicons name="close" size={28} color="#000" />
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+
+                    {/* Search Bar */}
+                    <View
+                        style={[
+                            styles.searchContainer,
+                            isSearchFocused && styles.searchContainerFocused,
+                        ]}
+                    >
+                        <Ionicons
+                            name="search"
+                            size={20}
+                            color={isSearchFocused ? '#F59E0B' : '#666'}
+                            style={styles.searchIcon}
+                        />
+                        <TextInput
+                            style={styles.searchInput}
+                            placeholder="Search by names"
+                            placeholderTextColor="#999"
+                            value={searchQuery}
+                            onChangeText={setSearchQuery}
+                            onFocus={() => setIsSearchFocused(true)}
+                            onBlur={() => setIsSearchFocused(false)}
+                        />
+                        {/* {!isSearchFocused && (
+                            <TouchableOpacity style={styles.sortButton}>
+                                <Ionicons name="refresh" size={20} color="#000" />
+                            </TouchableOpacity>
+                        )} */}
+                    </View>
+
+                    {/* Friends List */}
+                    <FlatList
+                        data={friends}
+                        renderItem={renderFriendItem}
+                        keyExtractor={(item) => item.id.toString()}
+                        showsVerticalScrollIndicator={false}
+                        contentContainerStyle={styles.listContent}
+                    />
+                </View>
+
+                {/* Floating Action Button */}
+                <TouchableOpacity
+                    style={styles.fab}
+                    onPress={handleAddFriend}
+                    activeOpacity={0.8}
+                >
+                    <Ionicons name="person-add" size={24} color="#000" />
+                </TouchableOpacity>
             </View>
-
-            {/* Search Bar */}
-            <View style={[
-                styles.searchContainer,
-                isSearchFocused && styles.searchContainerFocused
-            ]}>
-                <Ionicons
-                    name="search"
-                    size={20}
-                    color={isSearchFocused ? "#F59E0B" : "#666"}
-                    style={styles.searchIcon}
-                />
-                <TextInput
-                    style={styles.searchInput}
-                    placeholder="Search by names"
-                    placeholderTextColor="#999"
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                    onFocus={() => setIsSearchFocused(true)}
-                    onBlur={() => setIsSearchFocused(false)}
-                />
-                {!isSearchFocused && (
-                    <TouchableOpacity style={styles.sortButton}>
-                        <Ionicons name="refresh" size={20} color="#000" />
-                    </TouchableOpacity>
-                )}
-            </View>
-
-            {/* Friends List */}
-            <FlatList
-                data={friends}
-                renderItem={renderFriendItem}
-                keyExtractor={(item) => item.id.toString()}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.listContent}
-            />
-
-            {/* Floating Action Button */}
-            <TouchableOpacity
-                style={styles.fab}
-                onPress={handleAddFriend}
-                activeOpacity={0.8}
-            >
-                <Ionicons name="person-add" size={24} color="#000" />
-            </TouchableOpacity>
-        </View>
+        </TouchableWithoutFeedback>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
+    root: {
         flex: 1,
         backgroundColor: '#E5E5E5',
+    },
+    container: {
+        flex: 1,
         paddingHorizontal: 16,
     },
     headerSection: {
         paddingTop: 16,
         paddingBottom: 8,
+    },
+    headerTop: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+    },
+    headerTextContainer: {
+        flex: 1,
     },
     title: {
         fontSize: 28,
@@ -137,6 +169,10 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: '#000',
     },
+    closeButton: {
+        padding: 4,
+        marginLeft: 12,
+    },
     searchContainer: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -149,7 +185,7 @@ const styles = StyleSheet.create({
     },
     searchContainerFocused: {
         backgroundColor: '#fff',
-        borderColor: '#F59E0B', 
+        borderColor: '#F59E0B',
     },
     searchIcon: {
         marginRight: 8,
@@ -163,7 +199,6 @@ const styles = StyleSheet.create({
     sortButton: {
         padding: 4,
     },
-
     listContent: {
         paddingBottom: 100,
     },
@@ -176,8 +211,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingVertical: 16,
         marginBottom: 8,
-        // borderWidth: 1,
-        // borderColor: '#000',
     },
     friendInfo: {
         flexDirection: 'row',
@@ -204,20 +237,17 @@ const styles = StyleSheet.create({
     },
     fab: {
         position: 'absolute',
-        bottom: 20, // Position above bottom navigation
+        bottom: 20,
         right: 14,
         width: 58,
         height: 55,
         borderRadius: 21,
-        backgroundColor: '#F59E0B', // Orange color matching your theme
+        backgroundColor: '#F59E0B',
         alignItems: 'center',
         justifyContent: 'center',
-        elevation: 8, // Android shadow
-        shadowColor: '#595555ff', // iOS shadow
-        shadowOffset: {
-            width: 0,
-            height: 4,
-        },
+        elevation: 8,
+        shadowColor: '#595555ff',
+        shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 4.65,
     },

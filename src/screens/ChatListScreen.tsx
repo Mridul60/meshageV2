@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Text,
   StyleSheet,
@@ -8,7 +8,11 @@ import {
 } from 'react-native';
 import ChatItem from '../components/ChatItem';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-// import AddFriendBanner from '../components/AddFriendBanner';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../types/navigation';
+
+type ChatListNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Main'>;
 
 interface Chat {
   id: string;
@@ -16,94 +20,54 @@ interface Chat {
   message: string;
   time: string;
   avatar: string;
+  isRead: boolean;
 }
 
 const chatData: Chat[] = [
-  {
-    id: '1',
-    name: 'Shahid Anowar',
-    message: 'You: Just do not leave you out of anything',
-    time: 'Yesterday',
-    avatar: 'SA',
-  },
-  {
-    id: '2',
-    name: 'Sourav Sharma',
-    message: 'Kaha hai ?',
-    time: '11:11',
-    avatar: 'SS',
-  },
-  {
-    id: '3',
-    name: 'Sourav Sharma',
-    message: 'Kaha hai ?',
-    time: '11:11',
-    avatar: 'SS',
-  },
-  {
-    id: '4',
-    name: 'Sanjeev Iqbal Ahmed',
-    message: 'Khana khaya?',
-    time: '15:11',
-    avatar: 'SI',
-  },
-  {
-    id: '5',
-    name: 'Sanjeev Iqbal Ahmed',
-    message: 'Khana khaya?',
-    time: '15:11',
-    avatar: 'SI',
-  },
-  {
-    id: '6',
-    name: 'Faruk Khan',
-    message: 'You: Has ki thoda bhai',
-    time: 'Yesterday',
-    avatar: 'FK',
-  },
-  {
-    id: '7',
-    name: 'Sanjeev Iqbal Ahmed',
-    message: 'Khana khaya?',
-    time: '15:11',
-    avatar: 'SI',
-  },
-  {
-    id: '8',
-    name: 'Shahid Anowar',
-    message: 'You: Just to not leave you out of anything',
-    time: 'Yesterday',
-    avatar: 'SA',
-  },
-  {
-    id: '9',
-    name: 'Sanjeev Iqbal Ahmed',
-    message: 'Khana khaya?',
-    time: '15:11',
-    avatar: 'SI',
-  },
-  {
-    id: '10',
-    name: 'Shahid Anowar',
-    message: 'You: Just to not leave you out of anything',
-    time: 'Yesterday',
-    avatar: 'SA',
-  },
+  { id: '1', name: 'Shahid Anowar', message: 'You: Just to not leave you out of anything', time: 'Yesterday', avatar: 'SA', isRead: false },
+  { id: '2', name: 'Sourav Sharma', message: 'Kaha hai ?', time: '11:11', avatar: 'SS', isRead: true },
+  { id: '3', name: 'Sourav Sharma', message: 'Kaha hai ?', time: '11:11', avatar: 'SS', isRead: false },
+  { id: '4', name: 'Sanjeev Iqbal Ahmed', message: 'Khana khaya?', time: '15:11', avatar: 'SI', isRead: true },
+  { id: '5', name: 'Sanjeev Iqbal Ahmed', message: 'Khana khaya?', time: '15:11', avatar: 'SI', isRead: true },
+  { id: '6', name: 'Faruk Khan', message: 'You: Has ki thoda bhai', time: 'Yesterday', avatar: 'FK', isRead: true },
+  { id: '7', name: 'Sanjeev Iqbal Ahmed', message: 'Khana khaya?', time: '15:11', avatar: 'SI', isRead: true },
+  { id: '8', name: 'Shahid Anowar', message: 'You: Just to not leave you out of anything', time: 'Yesterday', avatar: 'SA', isRead: true },
+  { id: '9', name: 'Sanjeev Iqbal Ahmed', message: 'Khana khaya?', time: '15:11', avatar: 'SI', isRead: false },
+  { id: '10', name: 'Shahid Anowar', message: 'You: Just to not leave you out of anything', time: 'Yesterday', avatar: 'SA', isRead: true },
 ];
 
 const ChatScreen: React.FC = () => {
+  const navigation = useNavigation<ChatListNavigationProp>();
+
+  const [chats, setChats] = useState<Chat[]>(chatData);
+  const [unreadCount, setUnreadCount] = useState(
+    chatData.filter(c => !c.isRead).length
+  );
+
+  const handleChatItemPress = (chat: Chat) => {
+    if (!chat.isRead) {
+      setUnreadCount(prev => prev - 1);
+      setChats(prevChats =>
+        prevChats.map(c =>
+          c.id === chat.id ? { ...c, isRead: true } : c
+        )
+      );
+    }
+  };
+
   const renderChatItem = ({ item }: { item: Chat }) => (
     <ChatItem
       name={item.name}
       message={item.message}
       time={item.time}
       avatar={item.avatar}
+      isRead={item.isRead}
+      onPress={() => handleChatItemPress(item)}
     />
   );
 
-  const handleAddFriend = () => {
-    // Add your navigation or action here
-    console.log('Add friend button pressed');
+  const handleFriendsPageButton = () => {
+    navigation.navigate('Friends'); // Navigate to the Main screen which should contain your Friends page
   };
 
   return (
@@ -113,24 +77,23 @@ const ChatScreen: React.FC = () => {
           <Text style={styles.chatsTitle}>Chats</Text>
           <View style={styles.unreadContainer}>
             <Text style={styles.unreadText}>Unread messages</Text>
-            <Text style={styles.unreadCount}>99</Text>
+            <Text style={styles.unreadCount}>{unreadCount}</Text>
           </View>
         </View>
+
         <FlatList
-          data={chatData}
+          data={chats}
           renderItem={renderChatItem}
-          keyExtractor={(item) => item.id}
+          keyExtractor={item => item.id}
           style={styles.chatList}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.chatListContent}
         />
-        {/* <AddFriendBanner /> */}
       </View>
 
-      {/* Floating Action Button */}
       <TouchableOpacity
         style={styles.fab}
-        onPress={handleAddFriend}
+        onPress={handleFriendsPageButton}
         activeOpacity={0.8}
       >
         <Ionicons name="people" size={28} color="#000" />
@@ -140,67 +103,37 @@ const ChatScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 16,
-  },
-  chatsHeader: {
-    paddingVertical: 16,
-  },
-  chatsTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 4,
-  },
-  unreadContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8, // Space between text and count
-  },
-  unreadText: {
-    fontWeight: 'bold',
-    fontSize: 14,
-    color: '#000', // Adjust color as needed
-  },
+  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  content: { flex: 1, paddingHorizontal: 16 },
+  chatsHeader: { paddingVertical: 16 },
+  chatsTitle: { fontSize: 24, fontWeight: 'bold', color: '#000', marginBottom: 4 },
+  unreadContainer: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  unreadText: { fontWeight: 'bold', fontSize: 14, color: '#000' },
   unreadCount: {
     fontSize: 10,
-    fontWeight: '800', // Slightly bold but less than the label
-    // color: '#666', // Slightly muted color for the count
-    // Or you could style it as a badge:
+    fontWeight: '800',
     backgroundColor: '#F59E0B',
-    color: '#000000ff',
+    color: '#000',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 20,
     overflow: 'hidden',
   },
-  chatList: {
-    flex: 1
-  },
-  chatListContent: {
-    paddingBottom: 80, // Add padding to prevent FAB from covering last item
-  },
+  chatList: { flex: 1 },
+  chatListContent: { paddingBottom: 80 },
   fab: {
     position: 'absolute',
-    bottom: 20, // Position above bottom navigation
+    bottom: 20,
     right: 14,
     width: 58,
     height: 55,
     borderRadius: 21,
-    backgroundColor: '#F59E0B', // Orange color matching your theme
+    backgroundColor: '#F59E0B',
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 8, // Android shadow
-    shadowColor: '#595555ff', // iOS shadow
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
+    elevation: 8,
+    shadowColor: '#595555ff',
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 4.65,
   },
