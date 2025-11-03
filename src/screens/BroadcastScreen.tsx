@@ -10,6 +10,7 @@ import {
     Platform,
 } from 'react-native';
 import { Send } from 'lucide-react-native';
+import NearbyDevicesModal from '../components/NearbyDevicesModal';
 
 interface Message {
     id: string;
@@ -18,10 +19,19 @@ interface Message {
 }
 
 interface BroadcastScreenProps {
-    navigation: any; // Use proper navigation type from @react-navigation/native
+    navigation: any;
 }
 
+// Mock devices data for frontend development
+const mockDevices = [
+    { id: '1', name: 'Shahid Anowar', isFriend: true },
+    { id: '2', name: 'Sourav Sharma', isFriend: false },
+    { id: '3', name: 'Sanjeev Iqbal Ahmed', isFriend: false },
+    { id: '4', name: 'Faruk Khan', isFriend: true },
+];
+
 export default function BroadcastScreen({ navigation }: BroadcastScreenProps) {
+    const [modalVisible, setModalVisible] = useState(false);
     const [message, setMessage] = useState('');
     const [messages, setMessages] = useState<Message[]>([
         { id: '1', text: 'Welcome to the mesh.', isSent: false },
@@ -45,26 +55,37 @@ export default function BroadcastScreen({ navigation }: BroadcastScreenProps) {
     };
 
     const handleDevicesPress = () => {
-        navigation.navigate('NearbyDevicesScreen');
+        setModalVisible(true);
+    };
+
+    const handleMessage = (deviceId: string) => {
+        console.log('Message device:', deviceId);
+        // TODO: Navigate to chat or handle message action
+        setModalVisible(false);
+    };
+
+    const handleAddFriend = (deviceId: string) => {
+        console.log('Add friend:', deviceId);
+        // TODO: Handle add friend logic (update backend when ready)
     };
 
     return (
         <View style={styles.container}>
-            {/* STATUS BAR - Directly below the Header from App.tsx */}
+            {/* STATUS BAR */}
             <View style={styles.statusBar}>
                 <Text style={styles.statusLabel}>Broadcast Status:</Text>
                 <Text style={styles.statusValue}>DISCONNECTED</Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                     style={styles.statusRight}
                     onPress={handleDevicesPress}
                     activeOpacity={0.7}
                 >
                     <View style={styles.statusDot} />
-                    <Text style={styles.statusCount}>4</Text>
+                    <Text style={styles.statusCount}>{mockDevices.length}</Text>
                 </TouchableOpacity>
             </View>
 
-            {/* CHAT MESSAGES - Full screen */}
+            {/* CHAT MESSAGES */}
             <KeyboardAvoidingView
                 style={styles.flexContainer}
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -113,6 +134,15 @@ export default function BroadcastScreen({ navigation }: BroadcastScreenProps) {
                     </TouchableOpacity>
                 </View>
             </KeyboardAvoidingView>
+
+            {/* NEARBY DEVICES MODAL */}
+            <NearbyDevicesModal
+                visible={modalVisible}
+                onClose={() => setModalVisible(false)}
+                devices={mockDevices}
+                onMessage={handleMessage}
+                onAddFriend={handleAddFriend}
+            />
         </View>
     );
 }

@@ -40,10 +40,10 @@ const ChatItem: React.FC<ChatItemProps> = ({ name, message, time, avatar, isRead
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    paddingVertical: 12,
+    paddingVertical: 16,
     paddingHorizontal: 16,
     backgroundColor: '#fff',
-    marginBottom: 1,
+    // marginBottom: 1,
     alignItems: 'center',
   },
   avatar: {
