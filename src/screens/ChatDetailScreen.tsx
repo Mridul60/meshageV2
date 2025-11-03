@@ -212,8 +212,8 @@ const styles = StyleSheet.create({
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#C0C0C0',
-        padding: 16,
+        backgroundColor: '#292929',
+        padding: 12,
         paddingBottom: Platform.OS === 'ios' ? 20 : 16,
         gap: 12,
     },
@@ -238,24 +238,5 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#000',
     },
-    bottomNav: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-around',
-        backgroundColor: '#000',
-        paddingVertical: 12,
-        paddingBottom: Platform.OS === 'ios' ? 24 : 12,
-        borderTopWidth: 1,
-        borderTopColor: '#333',
-    },
-    navButton: {
-        padding: 8,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    navButtonActive: {
-        backgroundColor: '#F59E0B',
-        borderRadius: 12,
-        padding: 8,
-    },
+   
 });
