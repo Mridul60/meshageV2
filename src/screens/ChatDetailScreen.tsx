@@ -49,6 +49,7 @@ export default function ChatDetailScreen({ navigation, route }: Props) {
     return (
 
         <SafeAreaView style={styles.container}>
+          
             {/* HEADER */}
             <View style={styles.header}>
                 <TouchableOpacity
@@ -132,7 +133,7 @@ export default function ChatDetailScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#C0C0C0',
+        backgroundColor: '#000', // not grey
     },
     header: {
         flexDirection: 'row',
