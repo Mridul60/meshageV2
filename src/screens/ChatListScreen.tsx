@@ -45,6 +45,7 @@ const ChatScreen: React.FC = () => {
   );
 
   const handleChatItemPress = (chat: Chat) => {
+    // Mark as read
     if (!chat.isRead) {
       setUnreadCount(prev => prev - 1);
       setChats(prevChats =>
@@ -53,6 +54,12 @@ const ChatScreen: React.FC = () => {
         )
       );
     }
+
+    // Navigate to the chat screen with contact name
+    navigation.navigate('ChatDetail', {
+      contactName: chat.name,
+      contactId: chat.id
+    });
   };
 
   const renderChatItem = ({ item }: { item: Chat }) => (

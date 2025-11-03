@@ -30,7 +30,7 @@ const mockDevices = [
     { id: '4', name: 'Faruk Khan', isFriend: true },
 ];
 
-export default function BroadcastScreen({ navigation }: BroadcastScreenProps) {
+export default function BroadcastScreen({ }: BroadcastScreenProps) {
     const [modalVisible, setModalVisible] = useState(false);
     const [message, setMessage] = useState('');
     const [messages, setMessages] = useState<Message[]>([
