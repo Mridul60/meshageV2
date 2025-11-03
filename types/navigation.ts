@@ -8,6 +8,7 @@ export type RootStackParamList = {
     Main: undefined;
     Friends: undefined;
     MoreInfoPage: undefined;
+    ChatDetail: { contactName: string; contactId: string };
 };
 
 // Bottom tab navigation

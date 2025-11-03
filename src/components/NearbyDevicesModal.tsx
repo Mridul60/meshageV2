@@ -14,7 +14,7 @@ import {
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-const MODAL_HEIGHT = SCREEN_HEIGHT * 0.75;
+const MODAL_HEIGHT = SCREEN_HEIGHT * 0.45;
 
 interface Device {
     id: string;
@@ -111,9 +111,9 @@ const NearbyDevicesModal: React.FC<NearbyDevicesModalProps> = ({
     const renderDeviceItem = ({ item }: { item: Device }) => (
         <View style={styles.deviceItem}>
             <View style={styles.deviceInfo}>
-                <View style={styles.avatar}>
+                {/* <View style={styles.avatar}>
                     <Ionicons name="person" size={20} color="#666" />
-                </View>
+                </View> */}
                 <View style={styles.deviceTextContainer}>
                     <Text style={styles.deviceName}>{item.name}</Text>
                     <Text style={styles.deviceStatus}>
@@ -130,8 +130,8 @@ const NearbyDevicesModal: React.FC<NearbyDevicesModalProps> = ({
             >
                 <Ionicons
                     name={item.isFriend ? 'chatbubble' : 'person-add'}
-                    size={20}
-                    color="#000"
+                    size={18}
+                    color="#555151ff"
                 />
             </TouchableOpacity>
         </View>
@@ -184,7 +184,7 @@ const NearbyDevicesModal: React.FC<NearbyDevicesModalProps> = ({
                             onPress={closeModal}
                             activeOpacity={0.7}
                         >
-                            <Ionicons name="close" size={28} color="#000" />
+                            <Ionicons name="close" size={28} color="#F59E0B" />
                         </TouchableOpacity>
                     </View>
 
@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
     },
     modalContent: {
         height: MODAL_HEIGHT,
-        backgroundColor: '#E5E5E5',
+        backgroundColor: '#292929',
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
         paddingHorizontal: 16,
@@ -227,9 +227,9 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
     },
     dragHandle: {
-        width: 40,
+        width: 50,
         height: 4,
-        backgroundColor: '#C4C4C4',
+        backgroundColor: '#ffffffff',
         borderRadius: 2,
     },
     header: {
@@ -245,16 +245,17 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 28,
         fontWeight: 'bold',
-        color: '#000',
+        color: '#E5E1DE',
         marginBottom: 4,
     },
     subtitle: {
-        fontSize: 13,
+        fontSize: 12,
         color: '#666',
     },
     countText: {
-        fontWeight: '600',
-        color: '#000',
+        fontSize: 16,
+        fontWeight: '800',
+        color: '#F59E0B',
     },
     closeButton: {
         padding: 4,
@@ -269,8 +270,8 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         backgroundColor: '#FFF',
         borderRadius: 12,
-        paddingHorizontal: 16,
-        paddingVertical: 16,
+        paddingHorizontal: 12,
+        paddingVertical: 12,
         marginBottom: 8,
     },
     deviceInfo: {

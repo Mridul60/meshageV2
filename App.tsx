@@ -13,7 +13,7 @@ import BroadcastScreen from './src/screens/BroadcastScreen';
 import FriendsScreen from './src/screens/FriendsScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import MoreInfoPage from './src/screens/moreInfoScreen';
-import NearbyDevicesScreen from './src/screens/NearbyDevicesScreen';
+import ChatDetailScreen from './src/screens/ChatDetailScreen';
 import Header from './src/components/Header'; 
 
 const Stack = createNativeStackNavigator();
@@ -114,7 +114,9 @@ export default function App() {
               screenOptions={{ headerShown: false }}
             >
               <Stack.Screen name="Main" component={MainTabs} />
-              <Stack.Screen
+              <Stack.Screen name="ChatDetail" component={ChatDetailScreen as any}
+                  options={{ animation: 'slide_from_right' }} />
+              <Stack.Screen 
                 name="Friends"
                 component={FriendsScreen}
                 options={{
@@ -126,10 +128,6 @@ export default function App() {
               name="MoreInfoPage" 
               component={MoreInfoPage}
               // options={{ headerShown: true, title: 'More Information' }} 
-            />
-              <Stack.Screen 
-              name="NearbyDevicesScreen" 
-              component={NearbyDevicesScreen}
             />
               </Stack.Navigator>
           </NavigationContainer>
