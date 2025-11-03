@@ -13,7 +13,6 @@ import BroadcastScreen from './src/screens/BroadcastScreen';
 import FriendsScreen from './src/screens/FriendsScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import MoreInfoPage from './src/screens/moreInfoScreen';
-import NearbyDevicesScreen from './src/screens/NearbyDevicesScreen';
 import Header from './src/components/Header'; 
 
 const Stack = createNativeStackNavigator();
@@ -126,10 +125,6 @@ export default function App() {
               name="MoreInfoPage" 
               component={MoreInfoPage}
               // options={{ headerShown: true, title: 'More Information' }} 
-            />
-              <Stack.Screen 
-              name="NearbyDevicesScreen" 
-              component={NearbyDevicesScreen}
             />
               </Stack.Navigator>
           </NavigationContainer>
