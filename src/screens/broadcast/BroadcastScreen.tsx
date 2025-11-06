@@ -10,7 +10,7 @@ import {
     Platform,
 } from 'react-native';
 import { Send } from 'lucide-react-native';
-import NearbyDevicesModal from './components/NearbyDevicesModal';
+import NearbyDevicesModal from './NearbyDevicesModal';
 
 interface Message {
     id: string;

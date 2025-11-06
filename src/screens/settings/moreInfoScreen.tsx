@@ -7,7 +7,7 @@ import {
   ScrollView,
   Alert
 } from 'react-native';
-import Header from './components/Header';
+import Header from '../components/Header';
 
 export default function MoreInfoPage() {
   const [deviceInfo] = useState({

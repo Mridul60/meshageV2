@@ -10,7 +10,7 @@ import {
     TouchableWithoutFeedback,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import Header from './components/Header';
+import Header from '../../components/Header';
 
 interface Friend {
     id: number;

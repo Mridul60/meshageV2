@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { NativeModules, NativeEventEmitter } from 'react-native';
-import { StorageService } from '../../utils/storage';
-import type { Message } from '../types';
+import { StorageService } from '../../../utils/storage';
+import type { Message } from '../../../types';
 
 const { MeshNetwork } = NativeModules;
 const MeshNetworkEvents = new NativeEventEmitter(MeshNetwork);

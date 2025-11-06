@@ -13,7 +13,7 @@ import type {
   ConnectionInfo,
   MessageReceivedEvent,
   FriendRequest
-} from '../types';
+} from '../../types';
 
 const { MeshNetwork } = NativeModules;
 const MeshNetworkEvents = new NativeEventEmitter(MeshNetwork);

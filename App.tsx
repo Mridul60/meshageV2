@@ -11,9 +11,9 @@ import OnboardingScreen from './src/screens/OnboardingScreen';
 import ChatListScreen from './src/screens/ChatListScreen';
 import BroadcastScreen from './src/screens/BroadcastScreen';
 import FriendsScreen from './src/screens/FriendsScreen';
-import SettingsScreen from './src/screens/SettingsScreen';
-import MoreInfoPage from './src/screens/moreInfoScreen';
-import ChatDetailScreen from './src/screens/ChatDetailScreen';
+import SettingsScreen from './src/screens/settings/SettingsScreen';
+import MoreInfoPage from './src/screens/settings/moreInfoScreen';
+import ChatDetailScreen from './src/screens/chat/dm/ChatDetailScreen';
 import Header from './src/screens/components/Header';
 
 const Stack = createNativeStackNavigator();

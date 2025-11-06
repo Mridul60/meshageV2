@@ -42,7 +42,7 @@ export default function OnboardingScreen() {
                     value={name}
                     onChangeText={setName}
                     style={styles.input}
-                    placeholder=""
+                    placeholder="Your Name"
                     placeholderTextColor="#9ca3af"
                 />
                 <TouchableOpacity
