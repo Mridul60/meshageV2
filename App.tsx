@@ -14,7 +14,7 @@ import FriendsScreen from './src/screens/FriendsScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import MoreInfoPage from './src/screens/moreInfoScreen';
 import ChatDetailScreen from './src/screens/ChatDetailScreen';
-import Header from './src/components/Header'; 
+import Header from './src/screens/components/Header';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -28,46 +28,46 @@ function CustomBottomNavigation({ state, navigation }: any) {
     <SafeAreaView edges={['bottom']} style={styles.bottomSafeArea}>
       <View style={styles.bottomContainer}>
         {
-        state.routes
-          .filter((route: any) => route.name !== 'Friends') // ✅ hide Friends
-          .map((route: any) => {
-            const isFocused = route.name === currentRouteName;
+          state.routes
+            .filter((route: any) => route.name !== 'Friends') // ✅ hide Friends
+            .map((route: any) => {
+              const isFocused = route.name === currentRouteName;
 
 
-          let iconName = 'home';
-          if (route.name === 'Broadcast') iconName = 'radio';
-          else if (route.name === 'Chat') iconName = 'chatbubble';
-          else if (route.name === 'Friends') iconName = 'people';
-          else if (route.name === 'Settings') iconName = 'settings';
+              let iconName = 'home';
+              if (route.name === 'Broadcast') iconName = 'radio';
+              else if (route.name === 'Chat') iconName = 'chatbubble';
+              else if (route.name === 'Friends') iconName = 'people';
+              else if (route.name === 'Settings') iconName = 'settings';
 
-          const onPress = () => {
-            const event = navigation.emit({
-              type: 'tabPress',
-              target: route.key,
-              canPreventDefault: true,
-            });
-            if (!isFocused && !event.defaultPrevented) {
-              navigation.navigate(route.name);
-            }
-          };
+              const onPress = () => {
+                const event = navigation.emit({
+                  type: 'tabPress',
+                  target: route.key,
+                  canPreventDefault: true,
+                });
+                if (!isFocused && !event.defaultPrevented) {
+                  navigation.navigate(route.name);
+                }
+              };
 
-          return (
-            <TouchableOpacity
-              key={route.key}
-              accessibilityRole="button"
-              onPress={onPress}
-              style={styles.navItem}
-            >
-              <View style={isFocused ? styles.activeIndicator : undefined}>
-                <Ionicons
-                  name={iconName}
-                  size={22}
-                  color={isFocused ? '#ffa500' : '#666'}
-                />
-              </View>
-            </TouchableOpacity>
-          );
-        })}
+              return (
+                <TouchableOpacity
+                  key={route.key}
+                  accessibilityRole="button"
+                  onPress={onPress}
+                  style={styles.navItem}
+                >
+                  <View style={isFocused ? styles.activeIndicator : undefined}>
+                    <Ionicons
+                      name={iconName}
+                      size={22}
+                      color={isFocused ? '#ffa500' : '#666'}
+                    />
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
       </View>
     </SafeAreaView>
   );
@@ -146,10 +146,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     alignItems: 'center',
     paddingVertical: 2,
-   
+
   },
-    bottomSafeArea: {
-  backgroundColor: '#1a1a1a',
+  bottomSafeArea: {
+    backgroundColor: '#1a1a1a',
   },
   navItem: {
     padding: 8,

@@ -1,0 +1,235 @@
+// AsyncStorage for persistent storage across app restarts
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { Friend, FriendRequest } from '../types';
+
+// Re-export types for backward compatibility
+export type { Friend, FriendRequest };
+
+const STORAGE_KEYS = {
+  USERNAME: '@meshage_username',
+  PERSISTENT_ID: '@meshage_persistent_id',
+  FRIENDS: '@meshage_friends',
+  FRIEND_REQUESTS: '@meshage_friend_requests',
+  ONBOARDING_COMPLETE: '@meshage_onboarding_complete',
+  CHAT_HISTORY_PREFIX: '@meshage_chat_', // Prefix for individual chat histories
+};
+
+// Generate a unique persistent ID (UUID v4)
+const generatePersistentId = (): string => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+};
+
+export const StorageService = {
+  // Save username
+  saveUsername: async (username: string): Promise<void> => {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.USERNAME, username);
+      // Mark onboarding as complete when username is saved
+      await AsyncStorage.setItem(STORAGE_KEYS.ONBOARDING_COMPLETE, 'true');
+    } catch (error) {
+      console.error('Error saving username:', error);
+    }
+  },
+
+  // Get username
+  getUsername: async (): Promise<string | null> => {
+    try {
+      return await AsyncStorage.getItem(STORAGE_KEYS.USERNAME);
+    } catch (error) {
+      console.error('Error getting username:', error);
+      return null;
+    }
+  },
+
+  // Clear username
+  clearUsername: async (): Promise<void> => {
+    try {
+      await AsyncStorage.removeItem(STORAGE_KEYS.USERNAME);
+    } catch (error) {
+      console.error('Error clearing username:', error);
+    }
+  },
+
+  // Get or create persistent ID (persistent unique identifier)
+  getPersistentId: async (): Promise<string> => {
+    try {
+      let persistentId = await AsyncStorage.getItem(STORAGE_KEYS.PERSISTENT_ID);
+      
+      // Generate new ID if doesn't exist
+      if (!persistentId) {
+        persistentId = generatePersistentId();
+        await AsyncStorage.setItem(STORAGE_KEYS.PERSISTENT_ID, persistentId);
+        console.log('Generated new persistent ID:', persistentId);
+      } else {
+        console.log('Retrieved existing persistent ID:', persistentId);
+      }
+      
+      return persistentId;
+    } catch (error) {
+      console.error('Error getting persistent ID:', error);
+      // Fallback to generating a new one
+      return generatePersistentId();
+    }
+  },
+
+
+  // Friends management
+  getFriends: async (): Promise<Friend[]> => {
+    try {
+      const friendsJson = await AsyncStorage.getItem(STORAGE_KEYS.FRIENDS);
+      if (!friendsJson) return [];
+      return JSON.parse(friendsJson);
+    } catch (error) {
+      console.error('Error getting friends:', error);
+      return [];
+    }
+  },
+
+  addFriend: async (friend: Friend): Promise<void> => {
+    try {
+      const friends = await StorageService.getFriends();
+      
+      // Check if friend already exists (by persistentId)
+      const existingIndex = friends.findIndex(f => f.persistentId === friend.persistentId);
+      
+      if (existingIndex >= 0) {
+        // Update existing friend
+        friends[existingIndex] = { ...friends[existingIndex], ...friend, lastSeen: Date.now() };
+      } else {
+        // Add new friend
+        friends.push({ ...friend, lastSeen: Date.now() });
+      }
+      
+      await AsyncStorage.setItem(STORAGE_KEYS.FRIENDS, JSON.stringify(friends));
+      console.log('Friend added/updated:', friend.displayName);
+    } catch (error) {
+      console.error('Error adding friend:', error);
+    }
+  },
+
+  removeFriend: async (persistentId: string): Promise<void> => {
+    try {
+      const friends = await StorageService.getFriends();
+      const updatedFriends = friends.filter(f => f.persistentId !== persistentId);
+      await AsyncStorage.setItem(STORAGE_KEYS.FRIENDS, JSON.stringify(updatedFriends));
+      console.log('Friend removed:', persistentId);
+    } catch (error) {
+      console.error('Error removing friend:', error);
+    }
+  },
+
+  isFriend: async (persistentId: string): Promise<boolean> => {
+    try {
+      const friends = await StorageService.getFriends();
+      return friends.some(f => f.persistentId === persistentId);
+    } catch (error) {
+      console.error('Error checking friend status:', error);
+      return false;
+    }
+  },
+
+  // Friend Requests management
+  getFriendRequests: async (): Promise<FriendRequest[]> => {
+    try {
+      const requestsJson = await AsyncStorage.getItem(STORAGE_KEYS.FRIEND_REQUESTS);
+      if (!requestsJson) return [];
+      return JSON.parse(requestsJson);
+    } catch (error) {
+      console.error('Error getting friend requests:', error);
+      return [];
+    }
+  },
+
+  addFriendRequest: async (request: FriendRequest): Promise<void> => {
+    try {
+      const requests = await StorageService.getFriendRequests();
+      
+      // Check if request already exists
+      const existingIndex = requests.findIndex(r => r.persistentId === request.persistentId);
+      
+      if (existingIndex >= 0) {
+        // Update existing request
+        requests[existingIndex] = request;
+      } else {
+        // Add new request
+        requests.push(request);
+      }
+      
+      await AsyncStorage.setItem(STORAGE_KEYS.FRIEND_REQUESTS, JSON.stringify(requests));
+      console.log('Friend request added:', request.displayName);
+    } catch (error) {
+      console.error('Error adding friend request:', error);
+    }
+  },
+
+  removeFriendRequest: async (persistentId: string): Promise<void> => {
+    try {
+      const requests = await StorageService.getFriendRequests();
+      const updatedRequests = requests.filter(r => r.persistentId !== persistentId);
+      await AsyncStorage.setItem(STORAGE_KEYS.FRIEND_REQUESTS, JSON.stringify(updatedRequests));
+      console.log('Friend request removed:', persistentId);
+    } catch (error) {
+      console.error('Error removing friend request:', error);
+    }
+  },
+
+  // Onboarding status
+  isOnboardingComplete: async (): Promise<boolean> => {
+    try {
+      const isComplete = await AsyncStorage.getItem(STORAGE_KEYS.ONBOARDING_COMPLETE);
+      const username = await AsyncStorage.getItem(STORAGE_KEYS.USERNAME);
+      // Check both flags to be safe
+      return isComplete === 'true' && username !== null;
+    } catch (error) {
+      console.error('Error checking onboarding status:', error);
+      return false;
+    }
+  },
+
+  // Chat History management (per friend)
+  getChatHistory: async (friendId: string): Promise<any[]> => {
+    try {
+      const key = `${STORAGE_KEYS.CHAT_HISTORY_PREFIX}${friendId}`;
+      const historyJson = await AsyncStorage.getItem(key);
+      if (!historyJson) return [];
+      return JSON.parse(historyJson);
+    } catch (error) {
+      console.error('Error getting chat history:', error);
+      return [];
+    }
+  },
+
+  saveChatHistory: async (friendId: string, messages: any[]): Promise<void> => {
+    try {
+      const key = `${STORAGE_KEYS.CHAT_HISTORY_PREFIX}${friendId}`;
+      await AsyncStorage.setItem(key, JSON.stringify(messages));
+      console.log(`Chat history saved for friend: ${friendId} (${messages.length} messages)`);
+    } catch (error) {
+      console.error('Error saving chat history:', error);
+    }
+  },
+
+  addMessageToHistory: async (friendId: string, message: any): Promise<void> => {
+    try {
+      const history = await StorageService.getChatHistory(friendId);
+      history.push(message);
+      await StorageService.saveChatHistory(friendId, history);
+    } catch (error) {
+      console.error('Error adding message to history:', error);
+    }
+  },
+
+  clearChatHistory: async (friendId: string): Promise<void> => {
+    try {
+      const key = `${STORAGE_KEYS.CHAT_HISTORY_PREFIX}${friendId}`;
+      await AsyncStorage.removeItem(key);
+      console.log(`Chat history cleared for friend: ${friendId}`);
+    } catch (error) {
+      console.error('Error clearing chat history:', error);
+    }
+  },
+};

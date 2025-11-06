@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Send, ArrowLeft, Ban } from 'lucide-react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../types/navigation';
+import { RootStackParamList } from '../types/navigation';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ChatDetail'>;
@@ -49,7 +49,7 @@ export default function ChatDetailScreen({ navigation, route }: Props) {
     return (
 
         <SafeAreaView style={styles.container}>
-          
+
             {/* HEADER */}
             <View style={styles.header}>
                 <TouchableOpacity
@@ -88,7 +88,7 @@ export default function ChatDetailScreen({ navigation, route }: Props) {
                 >
                     {messages.map((msg) => (
                         <View
-                        key={msg.id}
+                            key={msg.id}
                             style={[
                                 styles.messageRow,
                                 msg.isSent ? styles.sentRow : styles.receivedRow,
@@ -98,9 +98,9 @@ export default function ChatDetailScreen({ navigation, route }: Props) {
                                 style={[
                                     styles.messageBubble,
                                     msg.isSent
-                                    ? styles.sentBubble
+                                        ? styles.sentBubble
                                         : styles.receivedBubble,
-                                    ]}
+                                ]}
                             >
                                 <Text style={styles.messageText}>{msg.text}</Text>
                             </View>
@@ -238,5 +238,5 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#000',
     },
-   
+
 });

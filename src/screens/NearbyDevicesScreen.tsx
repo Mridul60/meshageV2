@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { Wifi, Signal } from 'lucide-react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import Header from '../components/Header';
+import Header from './components/Header';
 
 interface Device {
     id: string;

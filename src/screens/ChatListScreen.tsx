@@ -6,11 +6,11 @@ import {
   View,
   TouchableOpacity,
 } from 'react-native';
-import ChatItem from '../components/ChatItem';
+import ChatItem from './components/ChatItem';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../types/navigation';
+import { RootStackParamList } from '../types/navigation';
 
 type ChatListNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Main'>;
 
