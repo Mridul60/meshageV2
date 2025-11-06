@@ -54,7 +54,7 @@ meshage/
 │   │   ├── ChatListScreen.tsx
 │   │   ├── ChatDetailsScreen.tsx
 │   │   └── SettingsScreen.tsx            # App settings
-│   ├── screens/
+│   ├── components/
 │   │   ├── AddFriendBanner.tsx
 │   │   ├── ChatItem.tsx
 │   │   ├── Header.tsx
