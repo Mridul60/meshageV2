@@ -150,7 +150,7 @@ export default function BroadcastScreen({ }: BroadcastScreenProps) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#E5E1DE',
+        backgroundColor: '#E5E5E5',
     },
     flexContainer: {
         flex: 1,
@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
     },
     scrollView: {
         flex: 1,
-        backgroundColor: '#E5E1DE',
+        backgroundColor: '#E5E5E5',
     },
     scrollContent: {
         paddingVertical: 16,
@@ -248,11 +248,8 @@ const styles = StyleSheet.create({
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#E5E1DE',
         padding: 12,
         paddingBottom: Platform.OS === 'ios' ? 24 : 12,
-        borderTopWidth: 1,
-        borderTopColor: '#00000020',
     },
     input: {
         flex: 1,
