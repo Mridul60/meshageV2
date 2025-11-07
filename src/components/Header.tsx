@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet,Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const Header: React.FC = () => {
@@ -17,11 +17,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a1a1a',
   },
   header: {
-    paddingHorizontal: 16,
-    paddingVertical: 5,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#000',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'ios' ? 50 : 12,
   },
   title: {
     color: '#d4af37',
