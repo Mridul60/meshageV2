@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
     View,
     Text,
@@ -11,77 +11,66 @@ import {
 } from 'react-native';
 import { Send } from 'lucide-react-native';
 import NearbyDevicesModal from './NearbyDevicesModal';
-
-interface Message {
-    id: string;
-    text: string;
-    isSent: boolean;
-}
+import { useBroadcastScreen } from './useBroadcastScreen';
 
 interface BroadcastScreenProps {
     navigation: any;
 }
 
-// Mock devices data for frontend development
-const mockDevices = [
-    { id: '1', name: 'Shahid Anowar', isFriend: true },
-    { id: '2', name: 'Sourav Sharma', isFriend: false },
-    { id: '3', name: 'Sanjeev Iqbal Ahmed', isFriend: false },
-    { id: '4', name: 'Faruk Khan', isFriend: true },
-];
-
-export default function BroadcastScreen({ }: BroadcastScreenProps) {
-    const [modalVisible, setModalVisible] = useState(false);
-    const [message, setMessage] = useState('');
-    const [messages, setMessages] = useState<Message[]>([
-        { id: '1', text: 'Welcome to the mesh.', isSent: false },
-        { id: '2', text: 'Hello everyone!', isSent: true },
-        { id: '3', text: 'This is a sample message.', isSent: false },
-        { id: '4', text: 'Looks good!', isSent: true },
-    ]);
-
-    const handleSend = () => {
-        if (message.trim()) {
-            setMessages([
-                ...messages,
-                {
-                    id: Date.now().toString(),
-                    text: message,
-                    isSent: true,
-                },
-            ]);
-            setMessage('');
-        }
-    };
+export default function BroadcastScreen({ navigation }: BroadcastScreenProps) {
+    const {
+        status,
+        peers,
+        connectedPeers,
+        messages,
+        messageText,
+        showDevicesModal,
+        messagesEndRef,
+        setMessageText,
+        setShowDevicesModal,
+        handleSendMessage,
+        handleAddFriend,
+        isFriend,
+    } = useBroadcastScreen();
 
     const handleDevicesPress = () => {
-        setModalVisible(true);
+        setShowDevicesModal(true);
     };
 
     const handleMessage = (deviceId: string) => {
         console.log('Message device:', deviceId);
-        // TODO: Navigate to chat or handle message action
-        setModalVisible(false);
+        // TODO: Navigate to personal chat when implemented
+        setShowDevicesModal(false);
     };
 
-    const handleAddFriend = (deviceId: string) => {
-        console.log('Add friend:', deviceId);
-        // TODO: Handle add friend logic (update backend when ready)
-    };
+    // Transform peers to match NearbyDevicesModal format
+    const devicesForModal = peers.map(peer => ({
+        id: peer.deviceAddress,
+        name: peer.displayName || peer.deviceName,
+        isFriend: isFriend(peer.persistentId),
+    }));
 
     return (
         <View style={styles.container}>
             {/* STATUS BAR */}
             <View style={styles.statusBar}>
                 <Text style={styles.statusLabel}>Broadcast Status:</Text>
-                <Text style={styles.statusValue}>DISCONNECTED</Text>
+                <Text style={styles.statusValue}>{status}</Text>
                 <TouchableOpacity
                     style={styles.statusRight}
                     onPress={handleDevicesPress}
                     activeOpacity={0.7}
                 >
-                    <View style={styles.statusDot} />
-                    <Text style={styles.statusCount}>{mockDevices.length}</Text>
+                    <View style={[
+                        styles.statusDot,
+                        connectedPeers.length > 0 && styles.statusDotConnected
+                    ]} />
+                    <Text style={[
+                        styles.statusCount,
+                        connectedPeers.length > 0 && styles.statusCountConnected
+                    ]}>
+                        {peers.length}
+                    </Text>
                 </TouchableOpacity>
             </View>
 
@@ -92,32 +81,56 @@ export default function BroadcastScreen({ }: BroadcastScreenProps) {
                 keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
             >
                 <ScrollView
+                    ref={messagesEndRef}
                     style={styles.scrollView}
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
+                    onContentSizeChange={() =>
+                        messagesEndRef.current?.scrollToEnd({ animated: true })
+                    }
                 >
-                    {messages.map((msg) => (
-                        <View
-                            key={msg.id}
-                            style={[
-                                styles.messageRow,
-                                msg.isSent ? styles.sentRow : styles.receivedRow,
-                            ]}
-                        >
-                            {!msg.isSent && <View style={styles.avatar} />}
+                    {messages.length === 0 ? (
+                        <View style={styles.emptyContainer}>
+                            <Text style={styles.emptyText}>
+                                {connectedPeers.length > 0
+                                    ? 'No messages yet. Start broadcasting!'
+                                    : 'Waiting for peers to connect\nDiscovering nearby devices...'}
+                            </Text>
+                        </View>
+                    ) : (
+                        messages.map((msg) => (
                             <View
+                                key={msg.id}
                                 style={[
-                                    styles.messageBubble,
-                                    msg.isSent
-                                        ? styles.sentBubble
-                                        : styles.receivedBubble,
+                                    styles.messageRow,
+                                    msg.isSent ? styles.sentRow : styles.receivedRow,
                                 ]}
                             >
-                                <Text style={styles.messageText}>{msg.text}</Text>
+                                {!msg.isSent && <View style={styles.avatar} />}
+                                <View style={styles.messageContainer}>
+                                    {!msg.isSent && (
+                                        <Text style={styles.senderName}>
+                                            {msg.senderName || 'Unknown'}
+                                        </Text>
+                                    )}
+                                    <View
+                                        style={[
+                                            styles.messageBubble,
+                                            msg.isSent
+                                                ? styles.sentBubble
+                                                : styles.receivedBubble,
+                                        ]}
+                                    >
+                                        <Text style={styles.messageText}>{msg.text}</Text>
+                                    </View>
+                                    <Text style={styles.messageTime}>
+                                        {new Date(msg.timestamp).toLocaleTimeString()}
+                                    </Text>
+                                </View>
+                                {msg.isSent && <View style={styles.avatar} />}
                             </View>
-                            {msg.isSent && <View style={styles.avatar} />}
-                        </View>
-                    ))}
+                        ))
+                    )}
                 </ScrollView>
 
                 {/* INPUT BAR */}
@@ -126,10 +139,19 @@ export default function BroadcastScreen({ }: BroadcastScreenProps) {
                         style={styles.input}
                         placeholder="Enter your message"
                         placeholderTextColor="#888"
-                        value={message}
-                        onChangeText={setMessage}
+                        value={messageText}
+                        onChangeText={setMessageText}
+                        onSubmitEditing={handleSendMessage}
+                        returnKeyType="send"
                     />
-                    <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
+                    <TouchableOpacity
+                        style={[
+                            styles.sendButton,
+                            !messageText.trim() && styles.sendButtonDisabled
+                        ]}
+                        onPress={handleSendMessage}
+                        disabled={!messageText.trim()}
+                    >
                         <Send size={20} color="#000" />
                     </TouchableOpacity>
                 </View>
@@ -137,9 +159,9 @@ export default function BroadcastScreen({ }: BroadcastScreenProps) {
 
             {/* NEARBY DEVICES MODAL */}
             <NearbyDevicesModal
-                visible={modalVisible}
-                onClose={() => setModalVisible(false)}
-                devices={mockDevices}
+                visible={showDevicesModal}
+                onClose={() => setShowDevicesModal(false)}
+                devices={devicesForModal}
                 onMessage={handleMessage}
                 onAddFriend={handleAddFriend}
             />
@@ -150,7 +172,7 @@ export default function BroadcastScreen({ }: BroadcastScreenProps) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#E5E1DE',
+        backgroundColor: '#E5E5E5',
     },
     flexContainer: {
         flex: 1,
@@ -188,27 +210,44 @@ const styles = StyleSheet.create({
         width: 12,
         height: 12,
         borderRadius: 6,
-        backgroundColor: '#22C55E',
+        backgroundColor: '#EF4444',
         borderWidth: 1,
         borderColor: '#000',
     },
+    statusDotConnected: {
+        backgroundColor: '#22C55E',
+    },
     statusCount: {
         fontSize: 12,
-        color: '#22C55E',
+        color: '#EF4444',
         fontWeight: '700',
+    },
+    statusCountConnected: {
+        color: '#22C55E',
     },
     scrollView: {
         flex: 1,
-        backgroundColor: '#E5E1DE',
     },
     scrollContent: {
         paddingVertical: 16,
         paddingHorizontal: 16,
         flexGrow: 1,
     },
+    emptyContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 32,
+    },
+    emptyText: {
+        fontSize: 14,
+        color: '#666',
+        textAlign: 'center',
+        lineHeight: 20,
+    },
     messageRow: {
         flexDirection: 'row',
-        alignItems: 'center',
+        alignItems: 'flex-end',
         marginBottom: 24,
     },
     sentRow: {
@@ -225,14 +264,22 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#000',
     },
+    messageContainer: {
+        marginHorizontal: 10,
+        maxWidth: '70%',
+    },
+    senderName: {
+        fontSize: 11,
+        color: '#666',
+        marginBottom: 4,
+        marginLeft: 4,
+    },
     messageBubble: {
         paddingVertical: 12,
         paddingHorizontal: 20,
-        maxWidth: '70%',
         borderWidth: 1,
         borderColor: '#000',
         backgroundColor: '#FFF',
-        marginHorizontal: 10,
     },
     receivedBubble: {
         transform: [{ skewX: '-10deg' }],
@@ -245,14 +292,17 @@ const styles = StyleSheet.create({
         fontSize: 14,
         transform: [{ skewX: '0deg' }],
     },
+    messageTime: {
+        fontSize: 10,
+        color: '#888',
+        marginTop: 4,
+        marginLeft: 4,
+    },
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#E5E1DE',
         padding: 12,
         paddingBottom: Platform.OS === 'ios' ? 24 : 12,
-        borderTopWidth: 1,
-        borderTopColor: '#00000020',
     },
     input: {
         flex: 1,
@@ -275,5 +325,8 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         borderWidth: 1,
         borderColor: '#000',
+    },
+    sendButtonDisabled: {
+        opacity: 0.5,
     },
 });

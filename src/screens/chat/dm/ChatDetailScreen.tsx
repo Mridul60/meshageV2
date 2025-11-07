@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
     },
     scrollView: {
         flex: 1,
-        backgroundColor: '#C0C0C0',
+        backgroundColor: '#E5E5E5',
     },
     scrollContent: {
         paddingVertical: 20,
@@ -213,9 +213,9 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#292929',
-        padding: 12,
+        padding: 8,
         paddingBottom: Platform.OS === 'ios' ? 20 : 16,
-        gap: 12,
+        gap: 0,
     },
     input: {
         flex: 1,

@@ -1,3 +1,4 @@
+[ ] - Broadcast chat goes up with the keyboard
 [ ] - Refine Settings Page
 [ ] - Add block dialog for ChatDetailScreen
 [ ] - Change between outlined and filled icons for better UX

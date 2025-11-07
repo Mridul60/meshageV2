@@ -8,13 +8,14 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import OnboardingScreen from './src/screens/OnboardingScreen';
-import ChatListScreen from './src/screens/ChatListScreen';
-import BroadcastScreen from './src/screens/BroadcastScreen';
-import FriendsScreen from './src/screens/FriendsScreen';
+
 import SettingsScreen from './src/screens/settings/SettingsScreen';
 import MoreInfoPage from './src/screens/settings/moreInfoScreen';
 import ChatDetailScreen from './src/screens/chat/dm/ChatDetailScreen';
 import Header from './src/screens/components/Header';
+import BroadcastScreen from './src/screens/broadcast/BroadcastScreen';
+import ChatListScreen from './src/screens/chat/ChatListScreen';
+import FriendsScreen from './src/screens/chat/friends/FriendsScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
