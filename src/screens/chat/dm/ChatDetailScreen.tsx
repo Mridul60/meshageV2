@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Send, ArrowLeft, Ban } from 'lucide-react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../types/navigation';
+import { RootStackParamList } from '../../../types/navigation';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ChatDetail'>;
@@ -49,7 +49,7 @@ export default function ChatDetailScreen({ navigation, route }: Props) {
     return (
 
         <SafeAreaView style={styles.container}>
-          
+
             {/* HEADER */}
             <View style={styles.header}>
                 <TouchableOpacity
@@ -88,7 +88,7 @@ export default function ChatDetailScreen({ navigation, route }: Props) {
                 >
                     {messages.map((msg) => (
                         <View
-                        key={msg.id}
+                            key={msg.id}
                             style={[
                                 styles.messageRow,
                                 msg.isSent ? styles.sentRow : styles.receivedRow,
@@ -98,9 +98,9 @@ export default function ChatDetailScreen({ navigation, route }: Props) {
                                 style={[
                                     styles.messageBubble,
                                     msg.isSent
-                                    ? styles.sentBubble
+                                        ? styles.sentBubble
                                         : styles.receivedBubble,
-                                    ]}
+                                ]}
                             >
                                 <Text style={styles.messageText}>{msg.text}</Text>
                             </View>
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
     },
     scrollView: {
         flex: 1,
-        backgroundColor: '#C0C0C0',
+        backgroundColor: '#E5E5E5',
     },
     scrollContent: {
         paddingVertical: 20,
@@ -213,9 +213,9 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#292929',
-        padding: 12,
+        padding: 8,
         paddingBottom: Platform.OS === 'ios' ? 20 : 16,
-        gap: 12,
+        gap: 0,
     },
     input: {
         flex: 1,
@@ -238,5 +238,5 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#000',
     },
-   
+
 });

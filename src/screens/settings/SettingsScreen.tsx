@@ -56,7 +56,7 @@ export default function SettingsScreen() {
 
                     <View style={styles.qrContainer}>
                         <Image
-                            source={require('../../assets/images/qrcode (1).png')}
+                            source={require('../../../assets/images/qrcode (1).png')}
                             style={styles.qrImage}
                             resizeMode="cover"
                         />
