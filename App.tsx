@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { StatusBar, View, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
@@ -6,6 +6,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { StorageService } from './src/utils/storage';
 
 import OnboardingScreen from './src/screens/OnboardingScreen';
 
@@ -102,13 +103,37 @@ function MainTabs() {
 
 /* ---------------------- ROOT APP ---------------------- */
 export default function App() {
+  const [initialRouteName, setInitialRouteName] = useState<'Onboarding' | 'Main'>('Onboarding');
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const checkOnboardingStatus = async () => {
+      const completed = await StorageService.isOnboardingComplete();
+      setInitialRouteName(completed ? 'Main' : 'Onboarding');
+      setIsLoading(false);
+    };
+
+    checkOnboardingStatus();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <SafeAreaProvider>
+          <StatusBar barStyle="light-content" backgroundColor="#1a1a1a" />
+          <View style={{ flex: 1, backgroundColor: '#000' }} />
+        </SafeAreaProvider>
+      </QueryClientProvider>
+    );
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <SafeAreaProvider>
         <StatusBar barStyle="light-content" backgroundColor="#1a1a1a" />
         <NavigationContainer>
           <Stack.Navigator
-            initialRouteName="Onboarding" // change to your "working" screen 
+            initialRouteName={initialRouteName} // change to your "working" screen 
             screenOptions={{ headerShown: false }}
           >
             <Stack.Screen name="Onboarding" component={OnboardingScreen} />

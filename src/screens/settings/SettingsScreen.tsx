@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -12,11 +12,28 @@ import {
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation, } from '@react-navigation/native';
 import Svg, { Path } from 'react-native-svg';
+import { StorageService } from '../../utils/storage';
 
 export default function SettingsScreen() {
     const [isConnected, setIsConnected] = useState(true);
     const [scanning, setScanning] = useState(false);
+    const [userName, setUserName] = useState('');
+    const [persistentId, setPersistentId] = useState('');
     const navigation = useNavigation();
+
+    useEffect(() => {
+        const loadUserInfo = async () => {
+            const savedUsername = await StorageService.getUsername();
+            const savedPersistentId = await StorageService.getPersistentId();
+
+            if (savedUsername) {
+                setUserName(savedUsername);
+            }
+            setPersistentId(savedPersistentId);
+        };
+
+        loadUserInfo();
+    }, []);
 
     const handleScan = async () => {
         setScanning(true);
@@ -35,8 +52,8 @@ export default function SettingsScreen() {
         <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
             <View style={styles.card}>
                 <View style={styles.cardContent}>
-                    <Text style={styles.userName}>JOHN DOE</Text>
-                    <Text style={styles.userId}>ID · ewjqr1q330rnf</Text>
+                    <Text style={styles.userName}>{userName || 'User'}</Text>
+                    <Text style={styles.userId}>ID · {persistentId ? persistentId.split('-')[0] : '...'}</Text>
 
                     <View style={styles.scanButtonContainer}>
                         <TouchableOpacity
