@@ -5,15 +5,13 @@ import {
     TextInput,
     TouchableOpacity,
     StyleSheet,
+    Alert,
 } from 'react-native';
-import MobileShell from '../components/mobileshell';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../types/navigation';
+import { StorageService } from "../utils/storage";
 
-type RootStackParamList = {
-    Onboarding: undefined;
-    Main: undefined;
-};
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -21,38 +19,44 @@ export default function OnboardingScreen() {
     const [name, setName] = useState('');
     const navigation = useNavigation<NavigationProp>();
 
-    const handleConnect = () => {
-        if (name.trim()) {
-            navigation.navigate('Main');
+    const handleConnect = async () => {
+        if (!name.trim()) {
+            Alert.alert('Name Required', 'Please enter your name to continue');
+            return;
         }
+
+        // Save username and set onboarding completed or not
+        await StorageService.saveUsername(name.trim());
+
+        // Navigate to main screen
+        navigation.replace("Main");
     };
 
     return (
-        <MobileShell>
-            <View style={styles.container}>
-                <Text style={styles.title}>ENTER YOUR NAME</Text>
-                <View style={styles.inputContainer}>
-                    <Text style={styles.label}>FULL NAME</Text>
-                    <TextInput
-                        value={name}
-                        onChangeText={setName}
-                        style={styles.input}
-                        placeholder=""
-                        placeholderTextColor="#9ca3af"
-                    />
-                    <TouchableOpacity
-                        style={[
-                            styles.button,
-                            !name.trim() && styles.buttonDisabled,
-                        ]}
-                        onPress={handleConnect}
-                        disabled={!name.trim()}
-                    >
-                        <Text style={styles.buttonText}>CONNECT</Text>
-                    </TouchableOpacity>
-                </View>
+
+        <View style={styles.container}>
+            <Text style={styles.title}>ENTER YOUR NAME</Text>
+            <View style={styles.inputContainer}>
+                <Text style={styles.label}>FULL NAME</Text>
+                <TextInput
+                    value={name}
+                    onChangeText={setName}
+                    style={styles.input}
+                    placeholder="Your Name"
+                    placeholderTextColor="#9ca3af"
+                />
+                <TouchableOpacity
+                    style={[
+                        styles.button,
+                        !name.trim() && styles.buttonDisabled,
+                    ]}
+                    onPress={handleConnect}
+                    disabled={!name.trim()}
+                >
+                    <Text style={styles.buttonText}>CONNECT</Text>
+                </TouchableOpacity>
             </View>
-        </MobileShell>
+        </View>
     );
 }
 

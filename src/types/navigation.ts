@@ -6,13 +6,15 @@ import type { RouteProp } from '@react-navigation/native';
 export type RootStackParamList = {
     Onboarding: undefined;
     Main: undefined;
+    Friends: undefined;
+    MoreInfoPage: undefined;
+    ChatDetail: { contactName: string; contactId: string };
 };
 
 // Bottom tab navigation
 export type MainTabParamList = {
     Broadcast: undefined;
     Chat: undefined;
-    Friends: undefined;
     Settings: undefined;
 };
 

@@ -1,0 +1,6 @@
+[ ] - Broadcast chat goes up with the keyboard
+[ ] - Refine Settings Page
+[ ] - Add block dialog for ChatDetailScreen
+[ ] - Change between outlined and filled icons for better UX
+[ ] - Make the shade of grey consistent throughout the app
+[ ] - Make the icon in the navigation page static and not shift when tapped on 
