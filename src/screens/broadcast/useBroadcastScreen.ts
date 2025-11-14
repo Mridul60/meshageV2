@@ -1,11 +1,10 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect, useRef } from 'react';
 import {
-    NativeModules,
-    NativeEventEmitter,
     PermissionsAndroid,
     Platform,
 } from 'react-native';
+
 import type {
     Peer,
     Message,
@@ -15,11 +14,7 @@ import type {
     FriendRequest,
 } from '../../types';
 import { StorageService } from '../../utils/storage';
-import { routingService } from '../../services/RoutingService';
-import { DataPacket, PacketType } from '../../types/routing';
-
-const { MeshNetwork } = NativeModules;
-const MeshNetworkEvents = new NativeEventEmitter(MeshNetwork);
+import { Nearby } from '../../services/Nearby';
 
 // Parse device identifier "username|persistentId"
 const parseDeviceIdentifier = (deviceName: string): { displayName: string; persistentId?: string } => {
@@ -48,9 +43,7 @@ export const useBroadcastScreen = () => {
     const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
     const [showDevicesModal, setShowDevicesModal] = useState<boolean>(false);
     const messagesEndRef = useRef<any>(null);
-    const hasAutoStarted = useRef<boolean>(false);
-    const connectionAttempts = useRef<Map<string, number>>(new Map());
-    const connectionRetryTimers = useRef<Map<string, any>>(new Map());
+    const peersRef = useRef<Peer[]>([]);
 
     const requestPermissions = async (): Promise<boolean> => {
         if (Platform.OS !== 'android') return true;
@@ -63,6 +56,8 @@ export const useBroadcastScreen = () => {
                 PermissionsAndroid.PERMISSIONS.BLUETOOTH_ADVERTISE,
                 PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
                 PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
+                PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+                PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION,
             );
         } else if (Platform.Version >= 31) {
             permissionsToRequest.push(
@@ -70,6 +65,7 @@ export const useBroadcastScreen = () => {
                 PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
                 PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
                 PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+                PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION,
             );
         } else {
             permissionsToRequest.push(
@@ -80,14 +76,22 @@ export const useBroadcastScreen = () => {
 
         try {
             const granted = await PermissionsAndroid.requestMultiple(permissionsToRequest);
-            const allGranted = Object.values(granted).every(
+            const anyGranted = Object.values(granted).some(
                 r => r === PermissionsAndroid.RESULTS.GRANTED,
             );
-            return allGranted;
+            return anyGranted;
         } catch (err) {
             console.warn(err);
             return false;
         }
+    };
+
+    const updatePeers = (updater: (prev: Peer[]) => Peer[]) => {
+        setPeers(prev => {
+            const next = updater(prev);
+            peersRef.current = next;
+            return next;
+        });
     };
 
     useEffect(() => {
@@ -96,13 +100,9 @@ export const useBroadcastScreen = () => {
             const savedUsername = await StorageService.getUsername();
             const savedPersistentId = await StorageService.getPersistentId();
 
-            // Create device identifier for routing
             const deviceIdentifier = savedUsername
                 ? `${savedUsername}|${savedPersistentId}`
                 : `User|${savedPersistentId}`;
-
-            // Initialize the routing service with our ID, device address, and username
-            routingService.initialize(savedPersistentId, deviceIdentifier, savedUsername || 'User');
 
             if (savedUsername) {
                 setUsername(savedUsername);
@@ -117,192 +117,80 @@ export const useBroadcastScreen = () => {
             const requests = await StorageService.getFriendRequests();
             setFriendRequests(requests);
 
-            MeshNetwork.setDeviceName(deviceIdentifier);
-            MeshNetwork.init();
-            setStatus('DISCONNECTED');
-
-            // Auto-start discovery
-            if (!hasAutoStarted.current) {
-                hasAutoStarted.current = true;
-                const hasPermission = await requestPermissions();
-                if (hasPermission) {
-                    setTimeout(() => {
-                        MeshNetwork.discoverPeers();
-                    }, 1000);
-                }
+            const hasPermission = await requestPermissions();
+            if (!hasPermission) {
+                setStatus('PERMISSION_REQUIRED');
+                return;
             }
+
+            setStatus('DISCOVERING');
+            await Nearby.start(deviceIdentifier);
         };
 
         initializeApp();
 
-        const attemptConnection = (peer: Peer) => {
-            const attempts = connectionAttempts.current.get(peer.deviceAddress) || 0;
-            const maxAttempts = 3;
-
-            if (!connectedPeers.includes(peer.deviceAddress)) {
-                if (attempts >= maxAttempts) {
-                    return;
-                }
-
-                MeshNetwork.connectToPeer(peer.deviceAddress);
-                connectionAttempts.current.set(peer.deviceAddress, attempts + 1);
-
-                const existingTimer = connectionRetryTimers.current.get(peer.deviceAddress);
-                if (existingTimer) {
-                    clearTimeout(existingTimer);
-                }
-
-                const retryTimer = setTimeout(() => {
-                    if (!connectedPeers.includes(peer.deviceAddress) &&
-                        peers.some(p => p.deviceAddress === peer.deviceAddress)) {
-                        attemptConnection(peer);
+        const subs = Nearby.addListeners({
+            onEndpointFound: ({ id, name }) => {
+                const { displayName, persistentId } = parseDeviceIdentifier(name);
+                updatePeers(prev => {
+                    const existingIndex = prev.findIndex(p => p.deviceAddress === id);
+                    const nextPeer: Peer = {
+                        deviceAddress: id,
+                        deviceName: name,
+                        status: 3,
+                        displayName,
+                        persistentId,
+                    };
+                    if (existingIndex >= 0) {
+                        const copy = [...prev];
+                        copy[existingIndex] = nextPeer;
+                        return copy;
                     }
-                }, 3000);
-
-                connectionRetryTimers.current.set(peer.deviceAddress, retryTimer);
-            }
-        };
-
-        const onPeersFoundListener = MeshNetworkEvents.addListener(
-            'onPeersFound',
-            (event: Peer[]) => {
-                const parsedPeers = event.map((peer: Peer) => {
-                    const { displayName, persistentId } = parseDeviceIdentifier(peer.deviceName);
-                    return { ...peer, displayName, persistentId };
+                    return [...prev, nextPeer];
                 });
 
-                setPeers(parsedPeers);
-
-                parsedPeers.forEach((peer: Peer) => {
-                    if ((peer.status === 3 || peer.status !== 0) && !connectedPeers.includes(peer.deviceAddress)) {
-                        attemptConnection(peer);
+                // Auto-connect to discovered endpoints
+                Nearby.connect(id).catch(() => { });
+            },
+            onEndpointLost: ({ id }) => {
+                updatePeers(prev => prev.filter(p => p.deviceAddress !== id));
+                setConnectedPeers(prev => prev.filter(p => p !== id));
+            },
+            onConnectionChanged: ({ id, connected }) => {
+                setConnectedPeers(prev => {
+                    let next: string[];
+                    if (connected) {
+                        next = [...new Set([...prev, id])];
+                    } else {
+                        next = prev.filter(p => p !== id);
                     }
+                    setStatus(next.length > 0 ? 'CONNECTED' : 'DISCONNECTED');
+                    return next;
                 });
             },
-        );
-
-        const onDiscoveryStateChangedListener = MeshNetworkEvents.addListener(
-            'onDiscoveryStateChanged',
-            (event: DiscoveryEvent | string) => {
-                let eventStatus: string;
-
-                if (typeof event === 'object' && event.status) {
-                    eventStatus = event.status;
-                } else {
-                    eventStatus = event as string;
-                }
-
-                if (eventStatus.includes('Failed')) {
-                    setStatus('DISCONNECTED');
-                    setTimeout(() => {
-                        MeshNetwork.discoverPeers();
-                    }, 3000);
-                }
+            onMessageReceived: ({ fromId, message, timestamp }) => {
+                const peer = peersRef.current.find(p => p.deviceAddress === fromId);
+                const senderName = peer?.displayName || peer?.deviceName || 'Unknown';
+                const newMessage: Message = {
+                    id: `${timestamp}-${fromId}`,
+                    text: message,
+                    fromAddress: fromId,
+                    senderName,
+                    timestamp,
+                    isSent: false,
+                };
+                setMessages(prev => [...prev, newMessage]);
             },
-        );
-
-        const onConnectionChangedListener = MeshNetworkEvents.addListener(
-            'onConnectionChanged',
-            (event: ConnectionInfo | boolean) => {
-                if (typeof event === 'boolean') {
-                    if (!event) {
-                        setConnectedPeers([]);
-                        setStatus('DISCONNECTED');
-                    }
-                } else {
-                    setStatus('CONNECTED');
-                }
-            },
-        );
-
-        const onPeerConnectedListener = MeshNetworkEvents.addListener(
-            'onPeerConnected',
-            (data: { address: string } | string) => {
-                const address = typeof data === 'string' ? data : data.address;
-                setConnectedPeers(prev => [...new Set([...prev, address])]);
-                setStatus('CONNECTED');
-
-                const timer = connectionRetryTimers.current.get(address);
-                if (timer) {
-                    clearTimeout(timer);
-                    connectionRetryTimers.current.delete(address);
-                }
-                connectionAttempts.current.delete(address);
-            },
-        );
-
-        const onPeerDisconnectedListener = MeshNetworkEvents.addListener(
-            'onPeerDisconnected',
-            (data: { address: string } | string) => {
-                const address = typeof data === 'string' ? data : data.address;
-                setConnectedPeers(prev => prev.filter(p => p !== address));
-                if (connectedPeers.length <= 1) {
-                    setStatus('DISCONNECTED');
-                }
-            },
-        );
-
-        const onMessageReceivedListener = MeshNetworkEvents.addListener(
-            'onMessageReceived',
-            (packetString: string) => {
-                // All incoming messages are now treated as packets and handled by the RoutingService
-                routingService.handleIncomingPacket(packetString);
-            }
-        );
-
-        const onConnectionErrorListener = MeshNetworkEvents.addListener(
-            'onConnectionError',
-            (error: any) => {
-                const reasonCode = error?.reasonCode || error;
-                const deviceAddress = error?.deviceAddress;
-
-                if (reasonCode === 1) return;
-
-                if (reasonCode === 3) {
-                    const timer = connectionRetryTimers.current.get(deviceAddress);
-                    if (timer) {
-                        clearTimeout(timer);
-                        connectionRetryTimers.current.delete(deviceAddress);
-                    }
-                    connectionAttempts.current.delete(deviceAddress);
-                }
-            },
-        );
+        });
 
         return () => {
-            onPeersFoundListener.remove();
-            onDiscoveryStateChangedListener.remove();
-            onConnectionChangedListener.remove();
-            onPeerConnectedListener.remove();
-            onPeerDisconnectedListener.remove();
-            onMessageReceivedListener.remove();
-            onConnectionErrorListener.remove();
-
-            connectionRetryTimers.current.forEach((timer) => {
-                clearTimeout(timer);
-            });
-            connectionRetryTimers.current.clear();
-            connectionAttempts.current.clear();
+            subs.remove();
+            Nearby.stop().catch(() => { });
         };
-    }, [connectedPeers, peers]);
+    }, []);
 
-    const handleSendMessage = (destinationId: string | null) => {
+    const handleSendMessage = () => {
         if (!messageText.trim()) return;
-
-        // For broadcast screen, always send as broadcast
-        if (!destinationId) {
-            // Use the new broadcast functionality
-            routingService.sendBroadcast({
-                text: messageText,
-                type: 'BROADCAST_MESSAGE'
-            }, 'BROADCAST');
-        } else {
-            // If a specific destination is provided, use regular routing
-            routingService.sendData(destinationId, {
-                text: messageText,
-                type: 'DIRECT_MESSAGE'
-            });
-        }
 
         // Optimistically display the message in the UI
         const newMessage: Message = {
@@ -315,6 +203,7 @@ export const useBroadcastScreen = () => {
         };
 
         setMessages(prev => [...prev, newMessage]);
+        Nearby.sendMessage(messageText, null).catch(() => { });
         setMessageText('');
 
         setTimeout(() => {
@@ -327,7 +216,8 @@ export const useBroadcastScreen = () => {
         if (!peer || !peer.persistentId) return;
 
         const friendRequestMessage = `FRIEND_REQUEST:${persistentId}:${username}`;
-        MeshNetwork.sendMessage(friendRequestMessage, username, peer.deviceAddress);
+        // Send friend request via Nearby to this specific endpoint
+        Nearby.sendMessage(friendRequestMessage, peer.deviceAddress).catch(() => { });
 
         await StorageService.addFriendRequest({
             persistentId: peer.persistentId,
