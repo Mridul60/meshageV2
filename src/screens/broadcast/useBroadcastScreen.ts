@@ -15,6 +15,8 @@ import type {
     FriendRequest,
 } from '../../types';
 import { StorageService } from '../../utils/storage';
+import { routingService } from '../../services/RoutingService';
+import { DataPacket, PacketType } from '../../types/routing';
 
 const { MeshNetwork } = NativeModules;
 const MeshNetworkEvents = new NativeEventEmitter(MeshNetwork);
@@ -94,6 +96,14 @@ export const useBroadcastScreen = () => {
             const savedUsername = await StorageService.getUsername();
             const savedPersistentId = await StorageService.getPersistentId();
 
+            // Create device identifier for routing
+            const deviceIdentifier = savedUsername
+                ? `${savedUsername}|${savedPersistentId}`
+                : `User|${savedPersistentId}`;
+
+            // Initialize the routing service with our ID, device address, and username
+            routingService.initialize(savedPersistentId, deviceIdentifier, savedUsername || 'User');
+
             if (savedUsername) {
                 setUsername(savedUsername);
             }
@@ -106,10 +116,6 @@ export const useBroadcastScreen = () => {
             // Load friend requests
             const requests = await StorageService.getFriendRequests();
             setFriendRequests(requests);
-
-            const deviceIdentifier = savedUsername
-                ? `${savedUsername}|${savedPersistentId}`
-                : `User|${savedPersistentId}`;
 
             MeshNetwork.setDeviceName(deviceIdentifier);
             MeshNetwork.init();
@@ -238,74 +244,10 @@ export const useBroadcastScreen = () => {
 
         const onMessageReceivedListener = MeshNetworkEvents.addListener(
             'onMessageReceived',
-            async (data: MessageReceivedEvent) => {
-                // Handle friend requests
-                if (data.message.startsWith('FRIEND_REQUEST:')) {
-                    const parts = data.message.split(':');
-                    if (parts.length === 3) {
-                        const requestPersistentId = parts[1];
-                        const requestDisplayName = parts[2];
-
-                        const isAlreadyFriend = await StorageService.isFriend(requestPersistentId);
-                        if (isAlreadyFriend) return;
-
-                        const friendRequest = {
-                            persistentId: requestPersistentId,
-                            displayName: requestDisplayName,
-                            deviceAddress: data.fromAddress,
-                            timestamp: data.timestamp,
-                            type: 'incoming' as const,
-                        };
-
-                        await StorageService.addFriendRequest(friendRequest);
-                        setFriendRequests(prev => {
-                            const filtered = prev.filter(r => r.persistentId !== requestPersistentId);
-                            return [...filtered, friendRequest];
-                        });
-                    }
-                    return;
-                }
-
-                // Handle friend accept
-                if (data.message.startsWith('FRIEND_ACCEPT:')) {
-                    const parts = data.message.split(':');
-                    if (parts.length === 3) {
-                        const acceptPersistentId = parts[1];
-                        const acceptDisplayName = parts[2];
-
-                        const isAlreadyFriend = await StorageService.isFriend(acceptPersistentId);
-                        if (isAlreadyFriend) return;
-
-                        await StorageService.addFriend({
-                            persistentId: acceptPersistentId,
-                            displayName: acceptDisplayName,
-                            deviceAddress: data.fromAddress,
-                        });
-
-                        setFriendsList(prev => new Set([...prev, acceptPersistentId]));
-
-                        await StorageService.removeFriendRequest(acceptPersistentId);
-                        setFriendRequests(prev => prev.filter(r => r.persistentId !== acceptPersistentId));
-                    }
-                    return;
-                }
-
-                // Ignore direct messages in broadcast
-                if (data.message.startsWith('DIRECT_MSG:')) {
-                    return;
-                }
-
-                // Regular broadcast message
-                const newMessage: Message = {
-                    id: `${data.timestamp}-${data.fromAddress}`,
-                    text: data.message,
-                    fromAddress: data.fromAddress,
-                    senderName: data.senderName,
-                    timestamp: data.timestamp,
-                    isSent: false,
-                };
-                setMessages(prev => [...prev, newMessage]);
-            },
+            (packetString: string) => {
+                // All incoming messages are now treated as packets and handled by the RoutingService
+                routingService.handleIncomingPacket(packetString);
+            }
         );
 
         const onConnectionErrorListener = MeshNetworkEvents.addListener(
@@ -344,9 +286,25 @@ export const useBroadcastScreen = () => {
         };
     }, [connectedPeers, peers]);
 
-    const handleSendMessage = () => {
+    const handleSendMessage = (destinationId: string | null) => {
         if (!messageText.trim()) return;
 
+        // For broadcast screen, always send as broadcast
+        if (!destinationId) {
+            // Use the new broadcast functionality
+            routingService.sendBroadcast({
+                text: messageText,
+                type: 'BROADCAST_MESSAGE'
+            }, 'BROADCAST');
+        } else {
+            // If a specific destination is provided, use regular routing
+            routingService.sendData(destinationId, {
+                text: messageText,
+                type: 'DIRECT_MESSAGE'
+            });
+        }
+
+        // Optimistically display the message in the UI
         const newMessage: Message = {
             id: `${Date.now()}-sent`,
             text: messageText,
@@ -357,7 +315,6 @@ export const useBroadcastScreen = () => {
         };
 
         setMessages(prev => [...prev, newMessage]);
-        MeshNetwork.sendMessage(messageText, username, null);
         setMessageText('');
 
         setTimeout(() => {
