@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,16 +8,43 @@ import {
   Alert
 } from 'react-native';
 import Header from '../components/Header';
+import { StorageService } from '../../utils/storage';
 
 export default function MoreInfoPage() {
-  const [deviceInfo] = useState({
-    username: 'Roy',
-    fullUUID: '7a7de20a-6c6d-4ecb-96f4-2731934deb88',
+  const [deviceInfo, setDeviceInfo] = useState({
+    username: 'User',
+    fullUUID: 'Unavailable',
     sessionLocalID: 'Not connected yet',
-    deviceIdentifier: '7a7de20a-6c6d-4ecb-96f4-2731934deb88',
-    friends: 4,
+    deviceIdentifier: 'Unavailable',
+    friends: 0,
     friendRequests: 0
   });
+
+  useEffect(() => {
+    const loadInfo = async () => {
+      const savedUsername = await StorageService.getUsername();
+      const savedPersistentId = await StorageService.getPersistentId();
+      const friends = await StorageService.getFriends();
+      const friendRequests = await StorageService.getFriendRequests();
+
+      const displayName = savedUsername || 'User';
+      const persistentId = savedPersistentId || 'Unavailable';
+      const deviceIdentifier = savedPersistentId
+        ? `${displayName}|${savedPersistentId}`
+        : displayName;
+
+      setDeviceInfo({
+        username: displayName,
+        fullUUID: persistentId,
+        sessionLocalID: 'Not connected yet',
+        deviceIdentifier,
+        friends: friends.length,
+        friendRequests: friendRequests.length,
+      });
+    };
+
+    loadInfo();
+  }, []);
 
   const handleClearData = () => {
     Alert.alert(
@@ -64,10 +91,7 @@ export default function MoreInfoPage() {
 
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Device Identifier:</Text>
-            <View style={styles.identifierContainer}>
-              <Text style={styles.identifierLabel}>Roy|</Text>
-              <Text style={styles.infoValueSmall}>{deviceInfo.deviceIdentifier}</Text>
-            </View>
+            <Text style={styles.infoValue}>{deviceInfo.deviceIdentifier}</Text>
           </View>
 
           <View style={styles.divider} />

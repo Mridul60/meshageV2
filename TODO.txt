@@ -4,3 +4,9 @@
 [ ] - Change between outlined and filled icons for better UX
 [ ] - Make the shade of grey consistent throughout the app
 [ ] - Make the icon in the navigation page static and not shift when tapped on 
+[ ] - Broadcast chat page the corner should be rounded
+[ ] - in chat page replace MESHAGE text with CHAT text and the corner should be rounded
+[ ] - in chat page the text box should not have padding from left and right side refine the UI
+
+
+
