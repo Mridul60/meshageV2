@@ -6,6 +6,7 @@ import {
   Platform,
 } from 'react-native';
 import { StorageService } from '../../utils/storage';
+import { routingService } from '../../services/RoutingService';
 import type {
   Peer,
   Message,
@@ -107,7 +108,7 @@ export const useChatScreen = () => {
     const initializeApp = async () => {
       // Load username and persistent ID from storage
       const savedUsername = await StorageService.getUsername();
-      const savedPersistentId = await StorageService.getPersistentId(); // Gets or creates persistent ID
+            const savedPersistentId = await StorageService.getPersistentId(); // Gets or creates persistent ID
 
       if (savedUsername) {
         setUsername(savedUsername);
@@ -119,7 +120,6 @@ export const useChatScreen = () => {
       // Load friends list
       const friends = await StorageService.getFriends();
       setFriendsList(new Set(friends.map(f => f.persistentId)));
-      console.log('Loaded friends:', friends.length);
 
       // Load friend requests
       const requests = await StorageService.getFriendRequests();
@@ -134,6 +134,9 @@ export const useChatScreen = () => {
 
       console.log('Device Identifier:', deviceIdentifier);
       console.log('Persistent ID:', savedPersistentId);
+
+      // Initialize the routing service with our ID, device address, and username
+      routingService.initialize(savedPersistentId, deviceIdentifier, savedUsername || 'User');
 
       // Update device name with username AND persistent ID
       MeshNetwork.setDeviceName(deviceIdentifier);
@@ -335,6 +338,9 @@ export const useChatScreen = () => {
         setConnectedPeers(prev => [...new Set([...prev, address])]);
         setStatus(`Peer connected: ${displayName}`);
 
+        // Notify routing service about new peer connection
+        routingService.addConnectedPeer(address, peer?.persistentId);
+
         // Clear retry timer for this peer since connection succeeded
         const timer = connectionRetryTimers.current.get(address);
         if (timer) {
@@ -358,198 +364,27 @@ export const useChatScreen = () => {
         console.log('Peer disconnected:', displayName, `(${address})`);
         setConnectedPeers(prev => prev.filter(p => p !== address));
         setStatus(`Peer disconnected: ${displayName}`);
+
+        // Notify routing service about peer disconnection
+        routingService.removeConnectedPeer(address);
       },
     );
 
-    const onMessageReceivedListener = MeshNetworkEvents.addListener(
+        const onMessageReceivedListener = MeshNetworkEvents.addListener(
       'onMessageReceived',
-      async (data: MessageReceivedEvent) => {
-        console.log('Message received:', data);
-
-        // Check if it's a friend request
-        if (data.message.startsWith('FRIEND_REQUEST:')) {
-          const parts = data.message.split(':');
-          if (parts.length === 3) {
-            const requestPersistentId = parts[1];
-            const requestDisplayName = parts[2];
-
-            // Check if already friends
-            const isAlreadyFriend = await StorageService.isFriend(requestPersistentId);
-            if (isAlreadyFriend) {
-              console.log('Friend request from existing friend, ignoring');
-              return;
-            }
-
-            // Add to friend requests as incoming
-            const friendRequest = {
-              persistentId: requestPersistentId,
-              displayName: requestDisplayName,
-              deviceAddress: data.fromAddress,
-              timestamp: data.timestamp,
-              type: 'incoming' as const,
-            };
-
-            await StorageService.addFriendRequest(friendRequest);
-            setFriendRequests(prev => {
-              const filtered = prev.filter(r => r.persistentId !== requestPersistentId);
-              return [...filtered, friendRequest];
-            });
-
-            console.log('Friend request received from:', requestDisplayName);
-          }
-          return;
-        }
-
-        // Check if it's a friend request acceptance
-        if (data.message.startsWith('FRIEND_ACCEPT:')) {
-          console.log('=== FRIEND_ACCEPT MESSAGE RECEIVED ===');
-          console.log('Raw message:', data.message);
-          console.log('From address:', data.fromAddress);
-
-          const parts = data.message.split(':');
-          if (parts.length === 3) {
-            const acceptPersistentId = parts[1];
-            const acceptDisplayName = parts[2];
-
-            console.log('Parsed - ID:', acceptPersistentId, 'Name:', acceptDisplayName);
-
-            // Check if already friends
-            const isAlreadyFriend = await StorageService.isFriend(acceptPersistentId);
-            if (isAlreadyFriend) {
-              console.log('Already friends with', acceptDisplayName, '- skipping');
-              return;
-            }
-
-            // Add as friend
-            await StorageService.addFriend({
-              persistentId: acceptPersistentId,
-              displayName: acceptDisplayName,
-              deviceAddress: data.fromAddress,
-            });
-            console.log('✅ Added to storage:', acceptDisplayName);
-
-            // Update local friends list
-            setFriendsList(prev => {
-              const newSet = new Set([...prev, acceptPersistentId]);
-              console.log('✅ Updated friendsList state, size:', newSet.size);
-              return newSet;
-            });
-
-            // Remove from outgoing friend requests
-            await StorageService.removeFriendRequest(acceptPersistentId);
-            setFriendRequests(prev => {
-              const filtered = prev.filter(r => r.persistentId !== acceptPersistentId);
-              console.log('✅ Removed from friend requests, remaining:', filtered.length);
-              return filtered;
-            });
-
-            console.log('✅ Friend request accepted by:', acceptDisplayName);
-          } else {
-            console.log('❌ Invalid FRIEND_ACCEPT format:', data.message);
-          }
-          return;
-        }
-
-        // Check if it's a direct message (personal chat)
-        if (data.message.startsWith('DIRECT_MSG:')) {
-          console.log('Chats - Direct message detected');
-
-          // Parse and save direct message to storage
-          const parts = data.message.split(':', 3);
-
-          if (parts.length === 3) {
-            const targetPersistentId = parts[1];
-            const messageContent = parts[2];
-
-            console.log('Chats - Direct message details:', {
-              targetPersistentId,
-              myPersistentId: persistentId,
-              fromAddress: data.fromAddress,
-              messagePreview: messageContent.substring(0, 20)
-            });
-
-            // Get current persistent ID from storage (in case state is stale)
-            const currentPersistentId = await StorageService.getPersistentId();
-
-            // Check if this message is for me
-            if (targetPersistentId === currentPersistentId) {
-              console.log('Chats - Received direct message for me, saving to storage');
-
-              // Parse sender info from device name format "Name|PersistentID"
-              let senderPersistentId: string | undefined;
-              let senderName = data.senderName || 'Unknown';
-
-              // Try to find sender in current peers list
-              const sender = peers.find(p => p.deviceAddress === data.fromAddress);
-              if (sender?.persistentId) {
-                senderPersistentId = sender.persistentId;
-                senderName = sender.displayName || senderName;
-                console.log('Chats - Found sender in peers:', senderName, senderPersistentId);
-              } else {
-                // Try to extract from senderName if it has format "Name|ID"
-                if (data.senderName && data.senderName.includes('|')) {
-                  const nameParts = data.senderName.split('|');
-                  if (nameParts.length === 2) {
-                    senderName = nameParts[0];
-                    senderPersistentId = nameParts[1];
-                    console.log('Chats - Extracted sender from message:', senderName, senderPersistentId);
-                  }
-                }
-              }
-
-              // Save message to chat history
-              if (senderPersistentId) {
-                const newMessage = {
-                  id: `${data.timestamp}-${data.fromAddress}`,
-                  text: messageContent,
-                  fromAddress: data.fromAddress,
-                  senderName: senderName,
-                  timestamp: data.timestamp,
-                  isSent: false,
-                };
-
-                // Save to storage for this friend
-                StorageService.getChatHistory(senderPersistentId).then(history => {
-                  // Check for duplicate message
-                  const isDuplicate = history.some(msg => msg.id === newMessage.id);
-                  if (isDuplicate) {
-                    console.log(`Chats - Duplicate message detected from ${senderName}, skipping save`);
-                    return;
-                  }
-
-                  const updatedHistory = [...history, newMessage];
-                  StorageService.saveChatHistory(senderPersistentId, updatedHistory);
-                  console.log(`✅ Saved direct message from ${senderName} (${senderPersistentId}) to storage`);
-                });
-              } else {
-                console.log('⚠️ Could not determine sender persistent ID, message not saved');
-                console.log('⚠️ Debug info:', {
-                  fromAddress: data.fromAddress,
-                  senderName: data.senderName,
-                  peersCount: peers.length
-                });
-              }
-            } else {
-              console.log('Chats - Direct message not for me, ignoring');
-            }
-          }
-
-          // Don't show direct messages in the broadcast chat
-          return;
-        }
-
-        // Regular broadcast message
-        const newMessage: Message = {
-          id: `${data.timestamp}-${data.fromAddress}`,
-          text: data.message,
-          fromAddress: data.fromAddress,
-          senderName: data.senderName, // Use sender name from message
-          timestamp: data.timestamp,
-          isSent: false,
-        };
-        setMessages(prev => [...prev, newMessage]);
-      },
+      (packetString: string) => {
+        // All incoming messages are now treated as packets and handled by the RoutingService
+        routingService.handleIncomingPacket(packetString);
+      }
     );
+
+    // PREVIOUS MESSAGE HANDLING LOGIC (NOW DELEGATED TO ROUTING SERVICE)
+    // const onMessageReceivedListener_OLD = MeshNetworkEvents.addListener(
+    //   'onMessageReceived',
+    //   async (data: MessageReceivedEvent) => {
+    //     // ... (rest of the old message handling logic)
+    //   }
+    // );
 
     const onMessageSentListener = MeshNetworkEvents.addListener(
       'onMessageSent',
@@ -674,29 +509,37 @@ export const useChatScreen = () => {
   };
 
   const handleSendMessage = () => {
-    if (!messageText.trim()) return;
+    if (!messageText.trim() || !selectedPeer) return;
 
+    // The selectedPeer is the deviceAddress. We need to find the persistentId for routing.
+    const peer = peers.find(p => p.deviceAddress === selectedPeer);
+    if (!peer || !peer.persistentId) {
+        console.error("Cannot send message: selected peer does not have a persistent ID.");
+        return;
+    }
+
+    routingService.sendData(peer.persistentId, messageText);
+
+    // Optimistically display the message
     const newMessage: Message = {
       id: `${Date.now()}-sent`,
       text: messageText,
-      fromAddress: 'me', // Identifier for sent messages
-      senderName: username, // Display name
+      fromAddress: 'me',
+      senderName: username,
       timestamp: Date.now(),
       isSent: true,
     };
-    console.log("usechat: newmessage: ", newMessage)
+
     setMessages(prev => [...prev, newMessage]);
-    MeshNetwork.sendMessage(messageText, username, null); // Pass username, null = broadcast to all
     setMessageText('');
 
-    // Auto scroll to bottom
     setTimeout(() => {
       messagesEndRef.current?.scrollToEnd({ animated: true });
     }, 100);
   };
 
-  const getPeerStatusText = (statusCode: number): string => {
-    switch (statusCode) {
+  const getPeerStatusText = (status: number): string => {
+    switch (status) {
       case 0: return 'Connected';
       case 1: return 'Invited';
       case 2: return 'Failed';
