@@ -15,6 +15,7 @@ import type {
 } from '../../types';
 import { StorageService } from '../../utils/storage';
 import { Nearby } from '../../services/Nearby';
+import { NodeIdentity, NodeMessage } from '../../services/NodeIdentity';
 
 // Parse device identifier "username|persistentId"
 const parseDeviceIdentifier = (deviceName: string): { displayName: string; persistentId?: string } => {
@@ -44,6 +45,8 @@ export const useBroadcastScreen = () => {
     const [showDevicesModal, setShowDevicesModal] = useState<boolean>(false);
     const messagesEndRef = useRef<any>(null);
     const peersRef = useRef<Peer[]>([]);
+    const nodeIdRef = useRef<string>('');
+    const sessionIdRef = useRef<string>(NodeIdentity.getSessionId());
 
     const requestPermissions = async (): Promise<boolean> => {
         if (Platform.OS !== 'android') return true;
@@ -104,6 +107,9 @@ export const useBroadcastScreen = () => {
                 ? `${savedUsername}|${savedPersistentId}`
                 : `User|${savedPersistentId}`;
 
+            // Windsurf Node identity
+            nodeIdRef.current = deviceIdentifier;
+
             if (savedUsername) {
                 setUsername(savedUsername);
             }
@@ -131,6 +137,11 @@ export const useBroadcastScreen = () => {
 
         const subs = Nearby.addListeners({
             onEndpointFound: ({ id, name }) => {
+                // SELF-FILTER for discovery: do not show or connect to our own nodeId
+                if (name === nodeIdRef.current) {
+                    return;
+                }
+
                 const { displayName, persistentId } = parseDeviceIdentifier(name);
                 updatePeers(prev => {
                     const existingIndex = prev.findIndex(p => p.deviceAddress === id);
@@ -169,17 +180,40 @@ export const useBroadcastScreen = () => {
                 });
             },
             onMessageReceived: ({ fromId, message, timestamp }) => {
-                const peer = peersRef.current.find(p => p.deviceAddress === fromId);
-                const senderName = peer?.displayName || peer?.deviceName || 'Unknown';
-                const newMessage: Message = {
-                    id: `${timestamp}-${fromId}`,
-                    text: message,
-                    fromAddress: fromId,
-                    senderName,
-                    timestamp,
-                    isSent: false,
-                };
-                setMessages(prev => [...prev, newMessage]);
+                let parsed: NodeMessage | null = null;
+                try {
+                    parsed = JSON.parse(message) as NodeMessage;
+                } catch {
+                    return;
+                }
+
+                if (!parsed || !parsed.nodeId || !parsed.sessionId) {
+                    return;
+                }
+
+                // SELF-FILTER: ignore any packet from our own nodeId
+                if (parsed.nodeId === nodeIdRef.current) {
+                    return;
+                }
+
+                if (parsed.type !== 'DATA' || !parsed.payload) {
+                    return;
+                }
+
+                // Handle broadcast chat messages
+                if (parsed.payload.kind === 'BROADCAST_MESSAGE' && typeof parsed.payload.text === 'string') {
+                    const peer = peersRef.current.find(p => p.deviceAddress === fromId);
+                    const senderName = peer?.displayName || peer?.deviceName || 'Unknown';
+                    const newMessage: Message = {
+                        id: `${timestamp}-${fromId}`,
+                        text: parsed.payload.text,
+                        fromAddress: fromId,
+                        senderName,
+                        timestamp,
+                        isSent: false,
+                    };
+                    setMessages(prev => [...prev, newMessage]);
+                }
             },
         });
 
@@ -203,7 +237,18 @@ export const useBroadcastScreen = () => {
         };
 
         setMessages(prev => [...prev, newMessage]);
-        Nearby.sendMessage(messageText, null).catch(() => { });
+        const envelope: NodeMessage = {
+            nodeId: nodeIdRef.current,
+            sessionId: sessionIdRef.current,
+            type: 'DATA',
+            payload: {
+                kind: 'BROADCAST_MESSAGE',
+                text: messageText,
+                timestamp: Date.now(),
+            },
+        };
+
+        Nearby.sendMessage(JSON.stringify(envelope), null).catch(() => { });
         setMessageText('');
 
         setTimeout(() => {

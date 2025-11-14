@@ -1,5 +1,6 @@
 import { Route, Packet, PacketType, RREQPacket, RREPPacket, RERRPacket, DataPacket } from '../types/routing';
 import { NativeModules } from 'react-native';
+import { NodeIdentity, NodeMessage } from './NodeIdentity';
 
 const { MeshNetwork } = NativeModules;
 
@@ -47,12 +48,11 @@ class RoutingService {
   }
 
   /**
-   * Main entry point for handling all incoming packets from the native layer.
+   * Main entry point for handling all incoming packets from the application layer.
+   * Expects a parsed Packet (already extracted from the NodeMessage envelope).
    */
-  public handleIncomingPacket(packetString: string) {
+  public handleIncomingPacket(packet: Packet) {
     try {
-      const packet: Packet = JSON.parse(packetString);
-
       switch (packet.type) {
         case PacketType.DATA:
           this.handleDataPacket(packet as DataPacket);
@@ -465,14 +465,20 @@ class RoutingService {
   }
 
   /**
-   * Broadcasts a packet to all connected peers
+   * Broadcasts a packet to all connected peers, wrapped in the NodeMessage envelope.
    */
   private broadcastPacket(packet: Packet, excludeDevice?: string) {
     console.log(`📡 Broadcasting ${packet.type} packet${excludeDevice ? ` (excluding ${excludeDevice})` : ''}`);
     
-    // Use MeshNetwork to broadcast
     try {
-      const packetString = JSON.stringify(packet);
+      const envelope: NodeMessage<Packet> = {
+        nodeId: NodeIdentity.getNodeId(),
+        sessionId: NodeIdentity.getSessionId(),
+        type: 'DATA',
+        payload: packet,
+      };
+
+      const packetString = JSON.stringify(envelope);
       MeshNetwork.sendMessage(packetString, this.username, null); // null = broadcast
     } catch (error) {
       console.error('Failed to broadcast packet:', error);
@@ -480,11 +486,18 @@ class RoutingService {
   }
 
   /**
-   * Sends a packet to a specific device
+   * Sends a packet to a specific device, wrapped in the NodeMessage envelope.
    */
   private sendPacketToDevice(deviceAddress: string, packet: Packet) {
     try {
-      const packetString = JSON.stringify(packet);
+      const envelope: NodeMessage<Packet> = {
+        nodeId: NodeIdentity.getNodeId(),
+        sessionId: NodeIdentity.getSessionId(),
+        type: 'DATA',
+        payload: packet,
+      };
+
+      const packetString = JSON.stringify(envelope);
       console.log(`📤 Sending ${packet.type} to ${deviceAddress}`);
       MeshNetwork.sendMessage(packetString, this.username, deviceAddress);
     } catch (error) {

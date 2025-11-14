@@ -7,6 +7,8 @@ import {
 } from 'react-native';
 import { StorageService } from '../../utils/storage';
 import { routingService } from '../../services/RoutingService';
+import { NodeIdentity, NodeMessage } from '../../services/NodeIdentity';
+import { windsurfDiscovery } from '../../services/WindsurfDiscovery';
 import type {
   Peer,
   Message,
@@ -135,8 +137,14 @@ export const useChatScreen = () => {
       console.log('Device Identifier:', deviceIdentifier);
       console.log('Persistent ID:', savedPersistentId);
 
+      // Initialize global Windsurf node identity
+      NodeIdentity.setNodeId(deviceIdentifier);
+
       // Initialize the routing service with our ID, device address, and username
       routingService.initialize(savedPersistentId, deviceIdentifier, savedUsername || 'User');
+
+      // Start Windsurf discovery loop (DISCOVER/RESPONSE) using MeshNetwork
+      windsurfDiscovery.start(savedUsername || 'User');
 
       // Update device name with username AND persistent ID
       MeshNetwork.setDeviceName(deviceIdentifier);
@@ -372,9 +380,45 @@ export const useChatScreen = () => {
 
         const onMessageReceivedListener = MeshNetworkEvents.addListener(
       'onMessageReceived',
-      (packetString: string) => {
-        // All incoming messages are now treated as packets and handled by the RoutingService
-        routingService.handleIncomingPacket(packetString);
+      (data: MessageReceivedEvent) => {
+        try {
+          const raw = data.message;
+          let envelope: NodeMessage<any>;
+
+          try {
+            envelope = JSON.parse(raw);
+          } catch {
+            // Not a NodeMessage envelope; ignore for routing layer
+            return;
+          }
+
+          if (!envelope || !envelope.nodeId || !envelope.sessionId) {
+            return;
+          }
+
+          // SELF-FILTER: ignore any packet from our own nodeId
+          const myNodeId = NodeIdentity.tryGetNodeId();
+          if (myNodeId && envelope.nodeId === myNodeId) {
+            return;
+          }
+
+          // Allow discovery service to update peer list for any valid non-self message
+          windsurfDiscovery.handleIncoming(envelope, data.fromAddress);
+
+          if (envelope.type !== 'DATA' || !envelope.payload) {
+            return;
+          }
+
+          // Payload is the routing Packet for DATA messages
+          const packet = envelope.payload as any;
+          if (!packet || !packet.type) {
+            return;
+          }
+
+          routingService.handleIncomingPacket(packet);
+        } catch (error) {
+          console.error('Error handling incoming NodeMessage in useChatScreen:', error);
+        }
       }
     );
 
@@ -555,9 +599,15 @@ export const useChatScreen = () => {
       return;
     }
 
-    // Send friend request to the peer
+    // Send friend request to the peer, wrapped in Windsurf Node envelope
     const friendRequestMessage = `FRIEND_REQUEST:${persistentId}:${username}`;
-    MeshNetwork.sendMessage(friendRequestMessage, username, peer.deviceAddress);
+    const friendRequestEnvelope: NodeMessage<string> = {
+      nodeId: NodeIdentity.getNodeId(),
+      sessionId: NodeIdentity.getSessionId(),
+      type: 'DATA',
+      payload: friendRequestMessage,
+    };
+    MeshNetwork.sendMessage(JSON.stringify(friendRequestEnvelope), username, peer.deviceAddress);
 
     // Save as outgoing request so we can track it
     await StorageService.addFriendRequest({
@@ -603,13 +653,20 @@ export const useChatScreen = () => {
     // Send acceptance message back - BROADCAST to ensure delivery
     const acceptMessage = `FRIEND_ACCEPT:${persistentId}:${username}`;
 
+    const acceptEnvelope: NodeMessage<string> = {
+      nodeId: NodeIdentity.getNodeId(),
+      sessionId: NodeIdentity.getSessionId(),
+      type: 'DATA',
+      payload: acceptMessage,
+    };
+
     // Try to send directly first
-    MeshNetwork.sendMessage(acceptMessage, username, request.deviceAddress);
+    MeshNetwork.sendMessage(JSON.stringify(acceptEnvelope), username, request.deviceAddress);
     console.log('Sent FRIEND_ACCEPT to:', request.deviceAddress);
 
     // Also broadcast to ensure the message reaches the requester
     setTimeout(() => {
-      MeshNetwork.sendMessage(acceptMessage, username, null);
+      MeshNetwork.sendMessage(JSON.stringify(acceptEnvelope), username, null);
       console.log('Broadcasted FRIEND_ACCEPT to all peers');
     }, 100);
 
