@@ -7,6 +7,6 @@
 [ ] - Broadcast chat page the corner should be rounded
 [ ] - in chat page replace MESHAGE text with CHAT text and the corner should be rounded
 [ ] - in chat page the text box should not have padding from left and right side refine the UI
-
+[ ] - make the padding in message bubble consistent (decrease it)
 
 
