@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.85)',
+        backgroundColor: 'transparent',
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -195,6 +195,107 @@ const styles = StyleSheet.create({
     scannerCamera: {
         width: '100%',
         height: '100%',
+    },
+    scannerFrameOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    // Inner scan card (actual scanning area), a bit bigger but still inside the outer L corners
+    scannerInnerSquare: {
+        width: 220,
+        height: 220,
+        borderRadius: 0,
+        borderWidth: 2,
+        borderColor: 'rgba(255,255,255,0.35)',
+        backgroundColor: 'rgba(0,0,0,0.15)',
+    },
+    scannerMaskTop: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: '50%',
+        // 220 / 2 = 110, so mask stops at top edge of inner scan square
+        marginBottom: 110,
+        backgroundColor: 'rgba(0,0,0,0.85)',
+    },
+    scannerMaskBottom: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        top: '50%',
+        marginTop: 110,
+        backgroundColor: 'rgba(0,0,0,0.85)',
+    },
+    scannerMaskLeft: {
+        position: 'absolute',
+        left: 0,
+        top: '50%',
+        bottom: '50%',
+        // 220 / 2 = 110, so mask stops at left edge of inner scan square
+        marginTop: -110,
+        marginBottom: -110,
+        right: '50%',
+        marginRight: 110,
+        backgroundColor: 'rgba(0,0,0,0.85)',
+    },
+    scannerMaskRight: {
+        position: 'absolute',
+        right: 0,
+        top: '50%',
+        bottom: '50%',
+        marginTop: -110,
+        marginBottom: -110,
+        left: '50%',
+        marginLeft: 110,
+        backgroundColor: 'rgba(0,0,0,0.85)',
+    },
+    scannerCorner: {
+        position: 'absolute',
+        width: 52,
+        height: 52,
+        borderColor: '#f59e0b',
+        borderWidth: 5,
+        borderRadius: 0,
+    },
+    scannerCornerTopLeft: {
+        top: '50%',
+        left: '50%',
+        // corners sit slightly outside the inner scan square (padding between corner and scan area)
+        marginTop: -130,
+        marginLeft: -130,
+        borderRightWidth: 0,
+        borderBottomWidth: 0,
+    },
+    scannerCornerTopRight: {
+        top: '50%',
+        right: '50%',
+        marginTop: -130,
+        marginRight: -130,
+        borderLeftWidth: 0,
+        borderBottomWidth: 0,
+    },
+    scannerCornerBottomLeft: {
+        bottom: '50%',
+        left: '50%',
+        marginBottom: -130,
+        marginLeft: -130,
+        borderRightWidth: 0,
+        borderTopWidth: 0,
+    },
+    scannerCornerBottomRight: {
+        bottom: '50%',
+        right: '50%',
+        marginBottom: -130,
+        marginRight: -130,
+        borderLeftWidth: 0,
+        borderTopWidth: 0,
     },
     scannerText: {
         fontSize: 16,
@@ -436,13 +537,34 @@ export default function SettingsScreen() {
                         style={styles.scannerCamera}
                         scanBarcode
                         showFrame
+                        frameColor="transparent"
+                        laserColor="transparent"
+                        // Match the 220x220 inner scan square so scanning is inside the L corners
+                        barcodeFrameSize={{ width: 220, height: 220 }}
+
                         onReadCode={(event: any) => {
+                            console.log('Camera onReadCode event:', event?.nativeEvent);
+
                             const value = event?.nativeEvent?.codeStringValue;
                             if (value) {
                                 handleScanSuccess({ data: value });
                             }
                         }}
                     />
+
+                    <View pointerEvents="none" style={styles.scannerFrameOverlay}>
+                        <View style={styles.scannerMaskTop} />
+                        <View style={styles.scannerMaskBottom} />
+                        <View style={styles.scannerMaskLeft} />
+                        <View style={styles.scannerMaskRight} />
+
+                        <View style={styles.scannerInnerSquare} />
+
+                        <View style={[styles.scannerCorner, styles.scannerCornerTopLeft]} />
+                        <View style={[styles.scannerCorner, styles.scannerCornerTopRight]} />
+                        <View style={[styles.scannerCorner, styles.scannerCornerBottomLeft]} />
+                        <View style={[styles.scannerCorner, styles.scannerCornerBottomRight]} />
+                    </View>
 
                     <View
                         style={{
