@@ -1,4 +1,5 @@
 import React from 'react';
+
 import {
     View,
     Text,
@@ -10,8 +11,10 @@ import {
     Platform,
 } from 'react-native';
 import { Send } from 'lucide-react-native';
+
 import NearbyDevicesModal from './NearbyDevicesModal';
 import { useBroadcastScreen } from './useBroadcastScreen';
+import type { Peer, Message, FriendRequest } from '../../types';
 
 interface BroadcastScreenProps {
     navigation: any;
@@ -31,6 +34,9 @@ export default function BroadcastScreen({ navigation }: BroadcastScreenProps) {
         handleSendMessage,
         handleAddFriend,
         isFriend,
+        friendRequests,
+        handleAcceptFriendRequest,
+        handleRejectFriendRequest,
     } = useBroadcastScreen();
 
     const handleDevicesPress = () => {
@@ -38,17 +44,33 @@ export default function BroadcastScreen({ navigation }: BroadcastScreenProps) {
     };
 
     const handleMessage = (deviceId: string) => {
-        console.log('Message device:', deviceId);
-        // TODO: Navigate to personal chat when implemented
+        const peer = peers.find(p => p.deviceAddress === deviceId);
+        if (!peer || !peer.persistentId) {
+            console.warn('Cannot open chat - peer missing persistentId', peer);
+            setShowDevicesModal(false);
+            return;
+        }
+
+        const contactName = peer.displayName || peer.deviceName || 'Unknown';
+
+        // Close the PAB first so the transition feels immediate
         setShowDevicesModal(false);
+
+        navigation.navigate('ChatDetail', {
+            contactName,
+            contactId: peer.persistentId,
+        });
     };
 
     // Transform peers to match NearbyDevicesModal format
-    const devicesForModal = peers.map(peer => ({
+    const devicesForModal = peers.map((peer: Peer) => ({
         id: peer.deviceAddress,
         name: peer.displayName || peer.deviceName,
         isFriend: isFriend(peer.persistentId),
     }));
+
+    const [showRequests, setShowRequests] = React.useState(false);
+    const pendingRequestsCount = friendRequests.filter((r: FriendRequest) => r.type === 'incoming').length;
 
     return (
         <View style={styles.container}>
@@ -56,22 +78,38 @@ export default function BroadcastScreen({ navigation }: BroadcastScreenProps) {
             <View style={styles.statusBar}>
                 <Text style={styles.statusLabel}>Broadcast Status:</Text>
                 <Text style={styles.statusValue}>{status}</Text>
-                <TouchableOpacity
-                    style={styles.statusRight}
-                    onPress={handleDevicesPress}
-                    activeOpacity={0.7}
-                >
-                    <View style={[
-                        styles.statusDot,
-                        connectedPeers.length > 0 && styles.statusDotConnected
-                    ]} />
-                    <Text style={[
-                        styles.statusCount,
-                        connectedPeers.length > 0 && styles.statusCountConnected
-                    ]}>
-                        {peers.length}
-                    </Text>
-                </TouchableOpacity>
+                <View style={styles.statusRight}>
+                    <TouchableOpacity
+                        onPress={handleDevicesPress}
+                        activeOpacity={0.7}
+                        style={styles.statusDotWrapper}
+                    >
+                        <View style={[
+                            styles.statusDot,
+                            connectedPeers.length > 0 && styles.statusDotConnected
+                        ]} />
+                        <Text style={[
+                            styles.statusCount,
+                            connectedPeers.length > 0 && styles.statusCountConnected
+                        ]}>
+                            {peers.length}
+                        </Text>
+                    </TouchableOpacity>
+
+                    {pendingRequestsCount > 0 && (
+                        <TouchableOpacity
+                            onPress={() => setShowRequests(true)}
+                            activeOpacity={0.7}
+                        >
+                            <View style={styles.notificationBadge}>
+                                <Text style={styles.notificationText}>
+                                    {pendingRequestsCount > 9 ? '9+' : pendingRequestsCount}
+                                </Text>
+                            </View>
+                        </TouchableOpacity>
+                    )}
+                </View>
+
             </View>
 
             {/* CHAT MESSAGES */}
@@ -98,7 +136,7 @@ export default function BroadcastScreen({ navigation }: BroadcastScreenProps) {
                             </Text>
                         </View>
                     ) : (
-                        messages.map((msg) => (
+                        messages.map((msg: Message) => (
                             <View
                                 key={msg.id}
                                 style={[
@@ -165,6 +203,55 @@ export default function BroadcastScreen({ navigation }: BroadcastScreenProps) {
                 onMessage={handleMessage}
                 onAddFriend={handleAddFriend}
             />
+
+            {/* FRIEND REQUESTS OVERLAY */}
+            {showRequests && (
+                <View style={styles.requestsOverlay}>
+                    <View style={styles.requestsCard}>
+                        <Text style={styles.requestsTitle}>Friend Requests</Text>
+                        {friendRequests.filter((r: FriendRequest) => r.type === 'incoming').length === 0 ? (
+                            <Text style={styles.requestsEmpty}>No pending requests</Text>
+                        ) : (
+                            friendRequests
+                                .filter((r: FriendRequest) => r.type === 'incoming')
+                                .map((request: FriendRequest) => (
+                                    <View key={request.persistentId} style={styles.requestItem}>
+                                        <View>
+                                            <Text style={styles.requestName}>{request.displayName}</Text>
+                                            <Text style={styles.requestId}>{request.persistentId}</Text>
+                                        </View>
+                                        <View style={styles.requestActions}>
+                                            <TouchableOpacity
+                                                style={styles.requestAccept}
+                                                onPress={async () => {
+                                                    await handleAcceptFriendRequest(request);
+                                                }}
+                                            >
+                                                <Text style={styles.requestAcceptText}>Accept</Text>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity
+                                                style={styles.requestReject}
+                                                onPress={async () => {
+                                                    await handleRejectFriendRequest(request);
+                                                }}
+                                            >
+                                                <Text style={styles.requestRejectText}>X</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    </View>
+                                ))
+                        )}
+
+                        <TouchableOpacity
+                            style={styles.requestsClose}
+                            onPress={() => setShowRequests(false)}
+                            activeOpacity={0.7}
+                        >
+                            <Text style={styles.requestsCloseText}>Close</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            )}
         </View>
     );
 }
@@ -201,10 +288,15 @@ const styles = StyleSheet.create({
         marginLeft: 'auto',
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
+        gap: 8,
         paddingVertical: 4,
         paddingHorizontal: 8,
         borderRadius: 12,
+    },
+    statusDotWrapper: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
     },
     statusDot: {
         width: 12,
@@ -224,6 +316,23 @@ const styles = StyleSheet.create({
     },
     statusCountConnected: {
         color: '#22C55E',
+    },
+    notificationBadge: {
+        marginLeft: 6,
+        minWidth: 18,
+        height: 18,
+        borderRadius: 9,
+        backgroundColor: '#F59E0B',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 4,
+        borderWidth: 1,
+        borderColor: '#000',
+    },
+    notificationText: {
+        fontSize: 10,
+        fontWeight: '800',
+        color: '#000',
     },
     scrollView: {
         flex: 1,
@@ -328,5 +437,101 @@ const styles = StyleSheet.create({
     },
     sendButtonDisabled: {
         opacity: 0.5,
+    },
+    // Friend requests bottom sheet styles
+    requestsOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        justifyContent: 'flex-end',
+        backgroundColor: 'rgba(0,0,0,0.4)',
+    },
+    requestsCard: {
+        width: '100%',
+        maxHeight: '55%',
+        backgroundColor: '#292929',
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        paddingHorizontal: 16,
+        paddingTop: 12,
+        paddingBottom: 16,
+        borderTopWidth: 1,
+        borderColor: '#000',
+    },
+    requestsTitle: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: '#E5E1DE',
+        marginBottom: 8,
+    },
+    requestsEmpty: {
+        fontSize: 13,
+        color: '#AAA',
+        marginBottom: 12,
+    },
+    requestItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: '#3A3A3A',
+    },
+    requestName: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#FFF',
+    },
+    requestId: {
+        fontSize: 11,
+        color: '#AAA',
+    },
+    requestActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    requestAccept: {
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        borderRadius: 999,
+        backgroundColor: '#22C55E',
+        borderWidth: 1,
+        borderColor: '#000',
+    },
+    requestAcceptText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#000',
+    },
+    requestReject: {
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 999,
+        backgroundColor: '#EF4444',
+        borderWidth: 1,
+        borderColor: '#000',
+    },
+    requestRejectText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#000',
+    },
+    requestsClose: {
+        marginTop: 12,
+        alignSelf: 'flex-end',
+        paddingHorizontal: 14,
+        paddingVertical: 6,
+        borderRadius: 999,
+        backgroundColor: '#F5F5F5',
+        borderWidth: 1,
+        borderColor: '#000',
+    },
+    requestsCloseText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#000',
     },
 });
