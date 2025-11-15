@@ -180,39 +180,71 @@ export const useBroadcastScreen = () => {
                 });
             },
             onMessageReceived: ({ fromId, message, timestamp }) => {
+                // First try to parse as NodeMessage JSON (used for broadcast chat)
                 let parsed: NodeMessage | null = null;
                 try {
                     parsed = JSON.parse(message) as NodeMessage;
                 } catch {
-                    return;
+                    parsed = null;
                 }
 
-                if (!parsed || !parsed.nodeId || !parsed.sessionId) {
-                    return;
+                if (parsed && parsed.nodeId && parsed.sessionId) {
+                    // SELF-FILTER: ignore any packet from our own nodeId
+                    if (parsed.nodeId === nodeIdRef.current) {
+                        return;
+                    }
+
+                    if (parsed.type === 'DATA' && parsed.payload) {
+                        // Handle broadcast chat messages
+                        if (parsed.payload.kind === 'BROADCAST_MESSAGE' && typeof parsed.payload.text === 'string') {
+                            const peer = peersRef.current.find(p => p.deviceAddress === fromId);
+                            const senderName = peer?.displayName || peer?.deviceName || 'Unknown';
+                            const newMessage: Message = {
+                                id: `${timestamp}-${fromId}`,
+                                text: parsed.payload.text,
+                                fromAddress: fromId,
+                                senderName,
+                                timestamp,
+                                isSent: false,
+                            };
+                            setMessages(prev => [...prev, newMessage]);
+                            return;
+                        }
+                    }
                 }
 
-                // SELF-FILTER: ignore any packet from our own nodeId
-                if (parsed.nodeId === nodeIdRef.current) {
-                    return;
-                }
+                // If we reach here, either JSON parsing failed or it wasn't a NodeMessage
+                // Handle raw friend request messages: "FRIEND_REQUEST:persistentId:username"
+                if (typeof message === 'string' && message.startsWith('FRIEND_REQUEST:')) {
+                    const parts = message.split(':', 3);
+                    if (parts.length === 3) {
+                        const senderPersistentId = parts[1];
+                        const senderName = parts[2];
 
-                if (parsed.type !== 'DATA' || !parsed.payload) {
-                    return;
-                }
+                        // Persist incoming friend request
+                        StorageService.addFriendRequest({
+                            persistentId: senderPersistentId,
+                            displayName: senderName,
+                            deviceAddress: fromId,
+                            timestamp,
+                            type: 'incoming',
+                        }).catch(() => { });
 
-                // Handle broadcast chat messages
-                if (parsed.payload.kind === 'BROADCAST_MESSAGE' && typeof parsed.payload.text === 'string') {
-                    const peer = peersRef.current.find(p => p.deviceAddress === fromId);
-                    const senderName = peer?.displayName || peer?.deviceName || 'Unknown';
-                    const newMessage: Message = {
-                        id: `${timestamp}-${fromId}`,
-                        text: parsed.payload.text,
-                        fromAddress: fromId,
-                        senderName,
-                        timestamp,
-                        isSent: false,
-                    };
-                    setMessages(prev => [...prev, newMessage]);
+                        // Update local state (deduplicate by persistentId)
+                        setFriendRequests(prev => {
+                            const filtered = prev.filter(r => r.persistentId !== senderPersistentId);
+                            return [
+                                ...filtered,
+                                {
+                                    persistentId: senderPersistentId,
+                                    displayName: senderName,
+                                    deviceAddress: fromId,
+                                    timestamp,
+                                    type: 'incoming' as const,
+                                },
+                            ];
+                        });
+                    }
                 }
             },
         });
@@ -284,9 +316,27 @@ export const useBroadcastScreen = () => {
         });
     };
 
-    const isFriend = (persistentId?: string): boolean => {
-        if (!persistentId) return false;
-        return friendsList.has(persistentId);
+    const handleAcceptFriendRequest = async (request: FriendRequest) => {
+        await StorageService.addFriend({
+            persistentId: request.persistentId,
+            displayName: request.displayName,
+            deviceAddress: request.deviceAddress,
+        });
+
+        setFriendsList(prev => new Set([...prev, request.persistentId]));
+
+        await StorageService.removeFriendRequest(request.persistentId);
+        setFriendRequests(prev => prev.filter(r => r.persistentId !== request.persistentId));
+    };
+
+    const handleRejectFriendRequest = async (request: FriendRequest) => {
+        await StorageService.removeFriendRequest(request.persistentId);
+        setFriendRequests(prev => prev.filter(r => r.persistentId !== request.persistentId));
+    };
+
+    const isFriend = (pid?: string): boolean => {
+        if (!pid) return false;
+        return friendsList.has(pid);
     };
 
     return {
@@ -303,6 +353,8 @@ export const useBroadcastScreen = () => {
         setShowDevicesModal,
         handleSendMessage,
         handleAddFriend,
+        handleAcceptFriendRequest,
+        handleRejectFriendRequest,
         isFriend,
     };
 };

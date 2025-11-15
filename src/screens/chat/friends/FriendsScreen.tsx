@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+
 import {
     View,
     Text,
@@ -11,20 +12,21 @@ import {
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Header from '../../components/Header';
-
-interface Friend {
-    id: number;
-    name: string;
-}
-
-const friends: Friend[] = Array.from({ length: 6 }, (_, i) => ({
-    id: i + 1,
-    name: 'Friend',
-}));
+import { StorageService } from '../../../utils/storage';
+import type { Friend } from '../../../types';
 
 export default function FriendsScreen({ navigation }: any) {
+    const [friends, setFriends] = useState<Friend[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearchFocused, setIsSearchFocused] = useState(false);
+
+    useEffect(() => {
+        const loadFriends = async () => {
+            const storedFriends = await StorageService.getFriends();
+            setFriends(storedFriends);
+        };
+        loadFriends();
+    }, []);
 
     const handleClose = () => {
         navigation.goBack();
@@ -34,8 +36,17 @@ export default function FriendsScreen({ navigation }: any) {
         console.log('Add friend pressed');
     };
 
-    const handleMessage = (friendId: number) => {
-        console.log(`Message friend ${friendId}`);
+    const handleMessage = (friendId: string) => {
+        const friend = friends.find(f => f.persistentId === friendId);
+        if (!friend) {
+            console.warn('Friend not found for id:', friendId);
+            return;
+        }
+
+        navigation.navigate('ChatDetail', {
+            contactName: friend.displayName,
+            contactId: friend.persistentId,
+        });
     };
 
     const renderFriendItem = ({ item }: { item: Friend }) => (
@@ -44,11 +55,11 @@ export default function FriendsScreen({ navigation }: any) {
                 <View style={styles.avatar}>
                     <Ionicons name="person" size={20} color="#666" />
                 </View>
-                <Text style={styles.friendName}>{item.name}</Text>
+                <Text style={styles.friendName}>{item.displayName}</Text>
             </View>
             <TouchableOpacity
                 style={styles.messageIcon}
-                onPress={() => handleMessage(item.id)}
+                onPress={() => handleMessage(item.persistentId)}
             >
                 <Ionicons name="chatbubble" size={20} color="#666" />
             </TouchableOpacity>
@@ -103,9 +114,13 @@ export default function FriendsScreen({ navigation }: any) {
                     </View>
 
                     <FlatList
-                        data={friends}
+                        data={friends.filter(f =>
+                            !searchQuery.trim()
+                                ? true
+                                : f.displayName.toLowerCase().includes(searchQuery.toLowerCase())
+                        )}
                         renderItem={renderFriendItem}
-                        keyExtractor={(item) => item.id.toString()}
+                        keyExtractor={(item) => item.persistentId}
                         showsVerticalScrollIndicator={false}
                         contentContainerStyle={styles.listContent}
                     />
