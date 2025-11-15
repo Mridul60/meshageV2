@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
+
 import {
     View,
     Text,
@@ -13,41 +14,26 @@ import { Send, ArrowLeft, Ban } from 'lucide-react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../types/navigation';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { usePersonalChat } from './usePersonalChat';
+import type { Message } from '../../../types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ChatDetail'>;
 
-interface Message {
-    id: string;
-    text: string;
-    isSent: boolean;
-}
-
 export default function ChatDetailScreen({ navigation, route }: Props) {
     const { contactName, contactId } = route.params;
-    const [message, setMessage] = useState('');
-    const [messages, setMessages] = useState<Message[]>([
-        { id: '1', text: 'Hey, how are you?', isSent: false },
-        { id: '2', text: 'I am good, thanks! What about you?', isSent: true },
-        { id: '3', text: 'Doing great! Are you free this weekend?', isSent: false },
-        { id: '4', text: 'Yes, I am free. What do you have in mind?', isSent: true },
-    ]);
 
-    const handleSend = () => {
-        if (message.trim()) {
-            setMessages([
-                ...messages,
-                {
-                    id: Date.now().toString(),
-                    text: message,
-                    isSent: true,
-                },
-            ]);
-            setMessage('');
-        }
-    };
+    const {
+        messages,
+        messageText,
+        messagesEndRef,
+        setMessageText,
+        handleSendMessage,
+    } = usePersonalChat({
+        friendId: contactId,
+        friendName: contactName,
+    });
 
     return (
-
         <SafeAreaView style={styles.container}>
 
             {/* HEADER */}
@@ -82,11 +68,15 @@ export default function ChatDetailScreen({ navigation, route }: Props) {
                 keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
             >
                 <ScrollView
+                    ref={messagesEndRef}
                     style={styles.scrollView}
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
+                    onContentSizeChange={() =>
+                        messagesEndRef.current?.scrollToEnd({ animated: true })
+                    }
                 >
-                    {messages.map((msg) => (
+                    {messages.map((msg: Message) => (
                         <View
                             key={msg.id}
                             style={[
@@ -114,12 +104,14 @@ export default function ChatDetailScreen({ navigation, route }: Props) {
                         style={styles.input}
                         placeholder="Enter your message"
                         placeholderTextColor="#999"
-                        value={message}
-                        onChangeText={setMessage}
+                        value={messageText}
+                        onChangeText={setMessageText}
+                        onSubmitEditing={handleSendMessage}
+                        returnKeyType="send"
                     />
                     <TouchableOpacity
                         style={styles.sendButton}
-                        onPress={handleSend}
+                        onPress={handleSendMessage}
                         activeOpacity={0.7}
                     >
                         <Send size={22} color="#000" />
