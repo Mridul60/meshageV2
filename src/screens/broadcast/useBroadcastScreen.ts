@@ -180,6 +180,7 @@ export const useBroadcastScreen = () => {
                 });
             },
             onMessageReceived: ({ fromId, message, timestamp }) => {
+
                 // First try to parse as NodeMessage JSON (used for broadcast chat)
                 let parsed: NodeMessage | null = null;
                 try {
@@ -214,36 +215,61 @@ export const useBroadcastScreen = () => {
                 }
 
                 // If we reach here, either JSON parsing failed or it wasn't a NodeMessage
-                // Handle raw friend request messages: "FRIEND_REQUEST:persistentId:username"
-                if (typeof message === 'string' && message.startsWith('FRIEND_REQUEST:')) {
-                    const parts = message.split(':', 3);
-                    if (parts.length === 3) {
-                        const senderPersistentId = parts[1];
-                        const senderName = parts[2];
+                if (typeof message === 'string') {
+                    // Handle raw friend request messages: "FRIEND_REQUEST:persistentId:username"
+                    if (message.startsWith('FRIEND_REQUEST:')) {
+                        const parts = message.split(':', 3);
+                        if (parts.length === 3) {
+                            const senderPersistentId = parts[1];
+                            const senderName = parts[2];
 
-                        // Persist incoming friend request
-                        StorageService.addFriendRequest({
-                            persistentId: senderPersistentId,
-                            displayName: senderName,
-                            deviceAddress: fromId,
-                            timestamp,
-                            type: 'incoming',
-                        }).catch(() => { });
+                            // Persist incoming friend request
+                            StorageService.addFriendRequest({
+                                persistentId: senderPersistentId,
+                                displayName: senderName,
+                                deviceAddress: fromId,
+                                timestamp,
+                                type: 'incoming',
+                            }).catch(() => { });
 
-                        // Update local state (deduplicate by persistentId)
-                        setFriendRequests(prev => {
-                            const filtered = prev.filter(r => r.persistentId !== senderPersistentId);
-                            return [
-                                ...filtered,
-                                {
-                                    persistentId: senderPersistentId,
-                                    displayName: senderName,
-                                    deviceAddress: fromId,
-                                    timestamp,
-                                    type: 'incoming' as const,
-                                },
-                            ];
-                        });
+                            // Update local state (deduplicate by persistentId)
+                            setFriendRequests(prev => {
+                                const filtered = prev.filter(r => r.persistentId !== senderPersistentId);
+                                return [
+                                    ...filtered,
+                                    {
+                                        persistentId: senderPersistentId,
+                                        displayName: senderName,
+                                        deviceAddress: fromId,
+                                        timestamp,
+                                        type: 'incoming' as const,
+                                    },
+                                ];
+                            });
+                        }
+                    }
+
+                    // Handle friend acceptance acknowledgement: "FRIEND_ACCEPT:persistentId:username"
+                    if (message.startsWith('FRIEND_ACCEPT:')) {
+                        const parts = message.split(':', 3);
+                        if (parts.length === 3) {
+                            const accepterPersistentId = parts[1];
+                            const accepterName = parts[2];
+
+                            // Persist new friend
+                            StorageService.addFriend({
+                                persistentId: accepterPersistentId,
+                                displayName: accepterName,
+                                deviceAddress: fromId,
+                            }).catch(() => { });
+
+                            // Update local friends set
+                            setFriendsList(prev => new Set([...prev, accepterPersistentId]));
+
+                            // Remove any pending friend request (incoming or outgoing) for this peer
+                            StorageService.removeFriendRequest(accepterPersistentId).catch(() => { });
+                            setFriendRequests(prev => prev.filter(r => r.persistentId !== accepterPersistentId));
+                        }
                     }
                 }
             },
@@ -317,6 +343,7 @@ export const useBroadcastScreen = () => {
     };
 
     const handleAcceptFriendRequest = async (request: FriendRequest) => {
+        // Add the requester as our friend locally
         await StorageService.addFriend({
             persistentId: request.persistentId,
             displayName: request.displayName,
@@ -325,8 +352,19 @@ export const useBroadcastScreen = () => {
 
         setFriendsList(prev => new Set([...prev, request.persistentId]));
 
+        // Remove this request from storage and state
         await StorageService.removeFriendRequest(request.persistentId);
         setFriendRequests(prev => prev.filter(r => r.persistentId !== request.persistentId));
+
+        // Send acknowledgement back so the original sender also adds us as a friend
+        try {
+            const acceptMessage = `FRIEND_ACCEPT:${persistentId}:${username}`;
+            if (request.deviceAddress) {
+                Nearby.sendMessage(acceptMessage, request.deviceAddress).catch(() => { });
+            }
+        } catch {
+            // best-effort, ignore errors
+        }
     };
 
     const handleRejectFriendRequest = async (request: FriendRequest) => {
