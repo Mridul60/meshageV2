@@ -1,11 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { NativeModules, NativeEventEmitter } from 'react-native';
 import { StorageService } from '../../../utils/storage';
 import type { Message } from '../../../types';
-import { NodeIdentity, NodeMessage } from '../../../services/NodeIdentity';
-
-const { MeshNetwork } = NativeModules;
-const MeshNetworkEvents = new NativeEventEmitter(MeshNetwork);
+import { routingService } from '../../../services/RoutingService';
+import type { DataPacket } from '../../../types/routing';
+import { NodeIdentity } from '../../../services/NodeIdentity';
 
 interface UsePersonalChatProps {
   friendId: string;
@@ -74,181 +72,58 @@ export const usePersonalChat = ({ friendId, friendName, friendAddress }: UsePers
     checkConnection();
   }, [connectedPeerAddresses, connectedPeerIds, friendAddress, friendId]);
 
-  // Listen to network events
+  // Listen to routed DATA packets from RoutingService
   useEffect(() => {
-    // Listen to peers found to map addresses to persistent IDs
-    const onPeersFoundListener = MeshNetworkEvents.addListener(
-      'onPeersFound',
-      (peers: Array<{ deviceName: string; deviceAddress: string; status: number }>) => {
-        console.log('PersonalChat - Peers found:', peers.length);
-
-        // Build mapping of connected peers (status 0 = connected)
-        const newConnectedAddresses: string[] = [];
-        const newPeerIdMap = new Map<string, string>();
-
-        peers.forEach(peer => {
-          if (peer.status === 0) { // Connected
-            newConnectedAddresses.push(peer.deviceAddress);
-
-            // Extract persistent ID from device name
-            const parts = peer.deviceName.split('|');
-            if (parts.length === 2) {
-              const persistentId = parts[1];
-              newPeerIdMap.set(peer.deviceAddress, persistentId);
-              console.log('PersonalChat - Peer mapping:', {
-                address: peer.deviceAddress,
-                name: parts[0],
-                persistentId,
-                isFriend: persistentId === friendId
-              });
-            }
-          }
-        });
-
-        setConnectedPeerAddresses(newConnectedAddresses);
-        setConnectedPeerIds(newPeerIdMap);
-      }
-    );
-
-    const onMessageReceivedListener = MeshNetworkEvents.addListener(
-      'onMessageReceived',
-      (data: { message: string; fromAddress: string; timestamp: number }) => {
-        try {
-          let envelope: NodeMessage<any>;
-          try {
-            envelope = JSON.parse(data.message);
-          } catch {
-            // Not a NodeMessage envelope, ignore
-            return;
-          }
-
-          if (!envelope || !envelope.nodeId || !envelope.sessionId) {
-            return;
-          }
-
-          const myNodeId = NodeIdentity.tryGetNodeId() || (myUsername && myPersistentId ? `${myUsername}|${myPersistentId}` : null);
-          if (myNodeId && envelope.nodeId === myNodeId) {
-            // SELF-FILTER: ignore our own messages
-            return;
-          }
-
-          if (envelope.type !== 'DATA') {
-            return;
-          }
-
-          const payload = envelope.payload;
-          if (typeof payload !== 'string') {
-            return;
-          }
-
-          console.log('PersonalChat - Message received payload:', {
-            payloadPreview: payload.substring(0, 50) + '...',
-            fromAddress: data.fromAddress,
-            expectedFriendId: friendId,
-          });
-
-          // Skip system messages not relevant to personal chat
-          if (payload.startsWith('FRIEND_REQUEST:') || payload.startsWith('FRIEND_ACCEPT:')) {
-            return;
-          }
-
-          // Handle direct messages
-          if (payload.startsWith('DIRECT_MSG:')) {
-            const parts = payload.split(':', 3);
-            console.log('PersonalChat - Parsing DIRECT_MSG, parts:', parts.length);
-
-            if (parts.length === 3) {
-              const targetPersistentId = parts[1];
-              const messageContent = parts[2];
-
-              console.log('PersonalChat - Message details:', {
-                targetPersistentId,
-                myPersistentId,
-                friendId,
-                messageContent: messageContent.substring(0, 20),
-              });
-
-              // Show message if it's meant for ME and from MY FRIEND
-              if (targetPersistentId === myPersistentId) {
-                const newMessage: Message = {
-                  id: `${data.timestamp}-${data.fromAddress}`,
-                  text: messageContent,
-                  fromAddress: data.fromAddress,
-                  senderName: friendName,
-                  timestamp: data.timestamp,
-                  isSent: false,
-                };
-                setMessages(prev => {
-                  // Check for duplicate message (same ID)
-                  const isDuplicate = prev.some(msg => msg.id === newMessage.id);
-                  if (isDuplicate) {
-                    console.log('PersonalChat - Duplicate message detected, skipping');
-                    return prev;
-                  }
-
-                  const updated = [...prev, newMessage];
-                  // Save to storage
-                  StorageService.saveChatHistory(friendId, updated);
-                  return updated;
-                });
-                console.log('✅ PersonalChat - Received message meant for me:', messageContent);
-              } else {
-                console.log('❌ PersonalChat - Message not meant for me (target:', targetPersistentId, 'me:', myPersistentId, ')');
-              }
-            }
-          } else {
-            // Skip other message types
-            console.log('PersonalChat - Ignoring non-direct message');
-          }
-        } catch (error) {
-          console.error('PersonalChat - Error handling onMessageReceived:', error);
+    const handler = (packet: DataPacket) => {
+      try {
+        // Only process packets delivered to us
+        if (packet.destinationId !== myPersistentId) {
+          return;
         }
-      }
-    );
 
-    const onPeerConnectedListener = MeshNetworkEvents.addListener(
-      'onPeerConnected',
-      (data: { address: string; deviceName?: string } | string) => {
-        const address = typeof data === 'string' ? data : data.address;
-        const deviceName = typeof data === 'object' ? data.deviceName : undefined;
-
-        console.log('PersonalChat - Peer connected:', address, deviceName);
-        setConnectedPeerAddresses(prev => [...new Set([...prev, address])]);
-
-        // Extract persistent ID from device name if available
-        if (deviceName) {
-          const parts = deviceName.split('|');
-          if (parts.length === 2) {
-            const persistentId = parts[1];
-            setConnectedPeerIds(prev => new Map(prev).set(address, persistentId));
-            console.log('PersonalChat - Mapped peer:', { address, persistentId });
-          }
+        const payload: any = packet.payload;
+        if (!payload || payload.kind !== 'DIRECT_MSG') {
+          return;
         }
-      }
-    );
 
-    const onPeerDisconnectedListener = MeshNetworkEvents.addListener(
-      'onPeerDisconnected',
-      (data: { address: string } | string) => {
-        const address = typeof data === 'string' ? data : data.address;
+        // Ensure this message is for this particular chat (from this friend)
+        if (packet.sourceId !== friendId) {
+          return;
+        }
 
-        console.log('PersonalChat - Peer disconnected:', address);
-        setConnectedPeerAddresses(prev => prev.filter(p => p !== address));
-        setConnectedPeerIds(prev => {
-          const updated = new Map(prev);
-          updated.delete(address);
+        const messageContent: string = payload.text;
+
+        const newMessage: Message = {
+          id: packet.packetId,
+          text: messageContent,
+          fromAddress: packet.sourceId,
+          senderName: friendName,
+          timestamp: packet.timestamp,
+          isSent: false,
+        };
+
+        setMessages(prev => {
+          const isDuplicate = prev.some(msg => msg.id === newMessage.id);
+          if (isDuplicate) {
+            console.log('PersonalChat - Duplicate routed message detected, skipping');
+            return prev;
+          }
+
+          const updated = [...prev, newMessage];
+          StorageService.saveChatHistory(friendId, updated);
           return updated;
         });
+        console.log('✅ PersonalChat - Received routed DIRECT_MSG for this chat:', messageContent);
+      } catch (error) {
+        console.error('PersonalChat - Error handling routed DataPacket:', error);
       }
-    );
-
-    return () => {
-      onPeersFoundListener.remove();
-      onMessageReceivedListener.remove();
-      onPeerConnectedListener.remove();
-      onPeerDisconnectedListener.remove();
     };
-  }, [friendId, myPersistentId, friendName]);
+
+    routingService.addDataHandler(handler);
+    return () => {
+      routingService.removeDataHandler(handler);
+    };
+  }, [friendId, friendName, myPersistentId]);
 
   const handleSendMessage = () => {
     if (!messageText.trim()) return;
@@ -269,20 +144,15 @@ export const usePersonalChat = ({ friendId, friendName, friendAddress }: UsePers
       return updated;
     });
 
-    // Add DIRECT_MSG prefix to indicate this is a private message
-    const directMessage = `DIRECT_MSG:${friendId}:${messageText}`;
-    console.log('usePersonalChat: directMessage: ', directMessage);
-
-    // Always broadcast direct messages to ensure delivery, wrapped in NodeMessage envelope
-    const senderIdentifier = `${myUsername}|${myPersistentId}`;
-    const envelope: NodeMessage<string> = {
-      nodeId: NodeIdentity.getNodeId(),
-      sessionId: NodeIdentity.getSessionId(),
-      type: 'DATA',
-      payload: directMessage,
+    // Use the RoutingService to send a unicast DIRECT_MSG to this friend
+    const payload = {
+      kind: 'DIRECT_MSG',
+      text: messageText,
+      timestamp: Date.now(),
     };
-    MeshNetwork.sendMessage(JSON.stringify(envelope), senderIdentifier, null);
-    console.log('PersonalChat - Broadcasting direct message to friend:', friendId);
+
+    routingService.sendData(friendId, payload);
+    console.log('PersonalChat - Sending routed DIRECT_MSG to friend:', friendId);
 
     setMessageText('');
 

@@ -22,6 +22,9 @@ class RoutingService {
   // Broadcast message tracking
   private broadcastCache: Set<string> = new Set(); // Prevents broadcast loops
 
+  // Subscribers for delivered DATA packets (application layer handlers)
+  private dataHandlers: Set<(packet: DataPacket) => void> = new Set();
+
   private constructor() {}
 
   public static getInstance(): RoutingService {
@@ -87,9 +90,15 @@ class RoutingService {
         payload: packet.payload,
         hops: this.calculateHops(packet)
       });
-      
-      // TODO: Emit event or callback to notify UI layer
-      // For now, we'll just log it
+
+      // Notify any subscribed handlers (e.g. personal chat hook)
+      this.dataHandlers.forEach(handler => {
+        try {
+          handler(packet);
+        } catch (err) {
+          console.error('Error in dataHandler subscriber:', err);
+        }
+      });
     } else {
       // Not for me, need to forward it
       console.log(`📤 Forwarding DATA packet to ${packet.destinationId}`);
@@ -594,6 +603,18 @@ class RoutingService {
     this.myDeviceAddress = deviceAddress;
     this.username = username;
     console.log(`📝 Updated device info: ${deviceAddress}, ${username}`);
+  }
+
+  /**
+   * Application-layer subscription for delivered DATA packets.
+   * Handlers are invoked only when a DATA packet reaches this node (destinationId === myPersistentId).
+   */
+  public addDataHandler(handler: (packet: DataPacket) => void) {
+    this.dataHandlers.add(handler);
+  }
+
+  public removeDataHandler(handler: (packet: DataPacket) => void) {
+    this.dataHandlers.delete(handler);
   }
 }
 
